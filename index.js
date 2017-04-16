@@ -4,6 +4,7 @@ const execFile = require('child_process').execFile;
 const Store = require('jfs');
 const db = new Store('sessionStore');
 const WAIT_FOR_PROGRAMS_TO_START_TIMEOUT = 1000;
+const POLL_ALL_APPS_STARTED_TIMEOUT = 2000;
 const EXECUTABLE_FILE_MAP = {
   'sun-awt-X11-XFramePeer.jetbrains-idea': 'jetbrains-idea.desktop',
   'gnome-terminal-server.Gnome-terminal': 'gnome-terminal',
@@ -36,16 +37,36 @@ function startSession(sessionName) {
   db.get(sessionName || 'DEFAULT', (err, savedWindowList) => {
     getActiveWindowList((currentWindowList) => {
       startSessionPrograms(savedWindowList, currentWindowList);
-
-      // TODO make this smarter by actively polling the opened windows
-      setTimeout(() => {
-        updateWindowIds(savedWindowList, currentWindowList);
+      waitForAllAppsToStart(savedWindowList, (updatedCurrentWindowList) => {
+        updateWindowIds(savedWindowList, updatedCurrentWindowList);
         restoreWindowPositions(savedWindowList, () => {
-          console.log('RESTORE SESSION');
+          console.log('RESTORED SESSION');
         });
-      }, WAIT_FOR_PROGRAMS_TO_START_TIMEOUT);
+      });
     });
   });
+}
+
+function waitForAllAppsToStart(savedWindowList, cb) {
+  setTimeout(() => {
+    getActiveWindowList((currentWindowList) => {
+      if (!isAllAppsStarted(savedWindowList, currentWindowList)) {
+        waitForAllAppsToStart(savedWindowList, cb);
+      } else {
+        cb(currentWindowList);
+      }
+    });
+  }, POLL_ALL_APPS_STARTED_TIMEOUT);
+}
+
+function isAllAppsStarted(savedWindowList, currentWindowList) {
+  let isAllStarted = true;
+  savedWindowList.forEach((win) => {
+    if (!getMatchingWindowId(win, currentWindowList)) {
+      isAllStarted = false;
+    }
+  });
+  return isAllStarted;
 }
 
 function readWindowStates(windowList, cb) {
@@ -55,7 +76,6 @@ function readWindowStates(windowList, cb) {
   });
 
   Promise.all(promises).then((results) => {
-    console.log(results);
     cb(results);
   });
 }
@@ -64,7 +84,7 @@ function readWindowState(win) {
   return new Promise(function (fulfill, reject) {
     exec(`xprop -id ${win.windowId} | grep "_NET_WM_STATE(ATOM)"`, (error, stdout, stderr) => {
       if (error || stderr) {
-        console.log(error, stderr);
+        console.error(error, stderr);
         reject(error || stderr);
       } else {
         const stringStates = stdout.replace('_NET_WM_STATE(ATOM) = ', '')
@@ -99,7 +119,7 @@ function readFilePath(win) {
   return new Promise(function (fulfill, reject) {
     exec('locate ' + win.executableFile, (error, stdout, stderr) => {
       if (error || stderr) {
-        console.log(error, stderr);
+        console.error(error, stderr);
         reject(error || stderr);
       } else {
         const lines = stdout.split('\n');
@@ -137,7 +157,7 @@ function getActiveWindowList(cb) {
   exec(cmd, function (error, stdout, stderr) {
     const data = transformWmctrlList(stdout);
     if (error || stderr) {
-      console.log(error, stderr);
+      console.error(error, stderr);
     } else {
       cb(data);
     }
@@ -163,7 +183,7 @@ function startProgram(executableFile, desktopFilePath) {
     detached: true,
   }, (error, stdout, stderr) => {
     if (error || stderr) {
-      console.log(error, stderr);
+      console.error(error, stderr);
     }
   }).unref();
 }
@@ -200,11 +220,11 @@ function handleDesktopFiles(executableFileString) {
 
 function updateWindowIds(savedWindowList, currentWindowList) {
   savedWindowList.forEach((win) => {
-    win.windowId = getWindowIdByExecutableFileString(win, currentWindowList);
+    win.windowId = getMatchingWindowId(win, currentWindowList);
   });
 }
 
-function getWindowIdByExecutableFileString(win, currentWindowList) {
+function getMatchingWindowId(win, currentWindowList) {
   const currentWindow = currentWindowList.find((winFromCurrent) => win.executableFile === winFromCurrent.executableFile);
   return currentWindow && currentWindow.windowId;
 }
@@ -241,7 +261,7 @@ function restoreWindowPosition(win) {
   return new Promise(function (fulfill, reject) {
     exec(cmd, (error, stdout, stderr) => {
       if (error || stderr) {
-        console.log(error, stderr);
+        console.error(error, stderr);
         reject(error || stderr);
       } else {
         const lines = stdout.split('\n');
