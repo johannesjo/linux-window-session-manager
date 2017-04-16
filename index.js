@@ -4,16 +4,23 @@ const execFile = require('child_process').execFile;
 const Store = require('jfs');
 const db = new Store('sessionStore');
 const WAIT_FOR_PROGRAMS_TO_START_TIMEOUT = 1000;
-const executableFileMap = {
+const EXECUTABLE_FILE_MAP = {
   'sun-awt-X11-XFramePeer.jetbrains-idea': 'jetbrains-idea.desktop',
   'gnome-terminal-server.Gnome-terminal': 'gnome-terminal',
 };
 
-const executableFileExclusions = [
+const EXECUTABLE_FILE_EXCLUSIONS = [
   'N/A',
   'desktop_window.Nautilus',
   'tilda.Tilda',
 ];
+const STATES_MAP = {
+  '_NET_WM_STATE_MAXIMIZED_VERT': 'maximized_vert',
+  '_NET_WM_STATE_MAXIMIZED_HORZ': 'maximized_horz',
+  '_NET_WM_STATE_FULLSCREEN': 'fullscreen',
+  '_NET_WM_STATE_ABOVE': 'above',
+  '_NET_WM_STATE_BELOW': 'below',
+};
 
 function savePositions(sessionName) {
   getActiveWindowList((windowList) => {
@@ -65,8 +72,8 @@ function readWindowState(win) {
         const states = stringStates.split(' = ');
         win.states = [];
         states.forEach((state) => {
-          if (state !== '') {
-            win.states.push(state);
+          if (state !== '' && STATES_MAP[state]) {
+            win.states.push(STATES_MAP[state]);
           }
         });
         fulfill(win.states);
@@ -74,7 +81,6 @@ function readWindowState(win) {
     });
   });
 }
-
 
 function readDesktopFilePaths(windowList, cb) {
   const promises = [];
@@ -143,7 +149,7 @@ function isDesktopFile(executableFile) {
 }
 
 function isExcluded(executableFile) {
-  return executableFileExclusions.indexOf(executableFile) > -1;
+  return EXECUTABLE_FILE_EXCLUSIONS.indexOf(executableFile) > -1;
 }
 
 function startProgram(executableFile, desktopFilePath) {
@@ -184,8 +190,8 @@ function transformWmctrlList(stdout) {
 }
 
 function handleDesktopFiles(executableFileString) {
-  if (executableFileMap[executableFileString]) {
-    return executableFileMap[executableFileString];
+  if (EXECUTABLE_FILE_MAP[executableFileString]) {
+    return EXECUTABLE_FILE_MAP[executableFileString];
   } else {
     const splitValues = executableFileString.split('.');
     return splitValues[0] + '.desktop';
@@ -218,11 +224,19 @@ function restoreWindowPositions(savedWindowList, cb) {
 
 function restoreWindowPosition(win) {
   const newPositionStr = `${win.gravity},${win.x},${win.y},${win.width},${win.height}`;
-  const states = 'remove,maximized_vert,maximized_horz,fullscreen,above,below';
-  const cmd = `wmctrl -i -r ${win.windowId} -e ${newPositionStr}  -b ${states}`;
-  console.log(cmd, win.executableFile);
+  const removeStatesStr = 'remove,maximized_vert,maximized_horz,fullscreen,above,below';
+  const baseCmd = `wmctrl -i -r ${win.windowId}`;
 
-  //console.log(win.windowId, win.executableFile, newPositionStr);
+  // add remove states command
+  let cmd = `${baseCmd} -b  ${removeStatesStr}`;
+
+  // add add states command
+  if (win.states && win.states.length > 0) {
+    cmd = `${cmd} &&  ${baseCmd} -b add,${win.states.join(',')}`;
+  }
+
+  // add restore positions command
+  cmd = `${cmd} && ${baseCmd} -e ${newPositionStr}`;
 
   return new Promise(function (fulfill, reject) {
     exec(cmd, (error, stdout, stderr) => {
@@ -230,7 +244,6 @@ function restoreWindowPosition(win) {
         console.log(error, stderr);
         reject(error || stderr);
       } else {
-        console.log(stdout);
         const lines = stdout.split('\n');
         win.desktopFilePath = lines[0];
         fulfill(stdout);
@@ -238,7 +251,6 @@ function restoreWindowPosition(win) {
     });
   });
 }
-console.log(process.argv);
 
 if (process.argv[2] === 'save') {
   savePositions();
