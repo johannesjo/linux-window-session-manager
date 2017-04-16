@@ -1,5 +1,5 @@
 {
-  "name": "ubuntu-window-restore",
+  "name": "linux-window-session-manager",
   "version": "1.0.0",
   "description": "Window session manager for linux",
   "main": "index.js",
