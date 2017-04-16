@@ -1,9 +1,7 @@
 const exec = require('child_process').exec;
 const spawn = require('child_process').spawn;
-const execFile = require('child_process').execFile;
 const Store = require('jfs');
 const db = new Store('sessionStore');
-const WAIT_FOR_PROGRAMS_TO_START_TIMEOUT = 1000;
 const POLL_ALL_APPS_STARTED_TIMEOUT = 2000;
 const EXECUTABLE_FILE_MAP = {
   'sun-awt-X11-XFramePeer.jetbrains-idea': 'jetbrains-idea.desktop',
@@ -174,12 +172,17 @@ function isExcluded(executableFile) {
 
 function startProgram(executableFile, desktopFilePath) {
   let cmd;
+  let args = [];
   if (desktopFilePath) {
-    cmd = `awk '/^Exec=/ {sub("^Exec=", ""); gsub(" ?%[cDdFfikmNnUuv]", ""); exit system($0)}' ${desktopFilePath}`;
+    cmd = `awk`;
+    args.push('/^Exec=/ {sub("^Exec=", ""); gsub(" ?%[cDdFfikmNnUuv]", ""); exit system($0)}');
+    args.push(desktopFilePath);
   } else {
     cmd = executableFile;
+    // TODO split args if necessary
   }
-  exec(cmd, {
+  spawn(cmd, args, {
+    stdio: 'ignore',
     detached: true,
   }, (error, stdout, stderr) => {
     if (error || stderr) {
