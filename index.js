@@ -17,8 +17,10 @@ const executableFileExclusions = [
 
 function savePositions(sessionName) {
   getActiveWindowList((windowList) => {
-    setDesktopFilePaths(windowList, () => {
-      db.save(sessionName || 'DEFAULT', windowList)
+    readWindowStates(windowList, () => {
+      readDesktopFilePaths(windowList, () => {
+        db.save(sessionName || 'DEFAULT', windowList)
+      });
     });
   });
 }
@@ -39,32 +41,65 @@ function startSession(sessionName) {
   });
 }
 
-function setDesktopFilePaths(windowList, cb) {
+function readWindowStates(windowList, cb) {
   const promises = [];
   windowList.forEach((win) => {
-    if (isDesktopFile(win.executableFile)) {
-      promises.push(setFilePath(win));
-    }
+    promises.push(readWindowState(win));
   });
 
   Promise.all(promises).then((results) => {
-    console.log('PROMISES DONE');
     console.log(results);
     cb(results);
   });
 }
 
-function setFilePath(win) {
+function readWindowState(win) {
+  return new Promise(function (fulfill, reject) {
+    exec(`xprop -id ${win.windowId} | grep "_NET_WM_STATE(ATOM)"`, (error, stdout, stderr) => {
+      if (error || stderr) {
+        console.log(error, stderr);
+        reject(error || stderr);
+      } else {
+        const stringStates = stdout.replace('_NET_WM_STATE(ATOM) = ', '')
+          .replace('\n', '');
+        const states = stringStates.split(' = ');
+        win.states = [];
+        states.forEach((state) => {
+          if (state !== '') {
+            win.states.push(state);
+          }
+        });
+        fulfill(win.states);
+      }
+    });
+  });
+}
+
+
+function readDesktopFilePaths(windowList, cb) {
+  const promises = [];
+  windowList.forEach((win) => {
+    if (isDesktopFile(win.executableFile)) {
+      promises.push(readFilePath(win));
+    }
+  });
+
+  Promise.all(promises).then((results) => {
+    cb(results);
+  });
+}
+
+function readFilePath(win) {
   return new Promise(function (fulfill, reject) {
     exec('locate ' + win.executableFile, (error, stdout, stderr) => {
       if (error || stderr) {
         console.log(error, stderr);
         reject(error || stderr);
       } else {
-        console.log(stdout);
         const lines = stdout.split('\n');
+        // just default to first for now
         win.desktopFilePath = lines[0];
-        fulfill(stdout);
+        fulfill(win.desktopFilePath);
       }
     });
   });
