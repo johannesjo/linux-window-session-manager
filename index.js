@@ -3,6 +3,7 @@ const spawn = require('child_process').spawn;
 const Store = require('jfs');
 const db = new Store('sessionStore');
 const POLL_ALL_APPS_STARTED_TIMEOUT = 2000;
+const IS_USE_XDOTOOL = true;
 const EXECUTABLE_FILE_MAP = {
   'sun-awt-X11-XFramePeer.jetbrains-idea': 'jetbrains-idea.desktop',
   'gnome-terminal-server.Gnome-terminal': 'gnome-terminal',
@@ -286,6 +287,7 @@ function handleDesktopFiles(executableFileString) {
 function updateWindowIds(savedWindowList, currentWindowList) {
   savedWindowList.forEach((win) => {
     win.windowId = getMatchingWindowId(win, currentWindowList);
+    win.windowIdDec = parseInt(win.windowId, 16);
   });
 }
 
@@ -315,16 +317,19 @@ function restoreWindowPosition(win) {
   // add remove states command
   let cmd = `${baseCmd} -b  ${removeStatesStr}`;
 
+  // add restore positions command
+  if (IS_USE_XDOTOOL) {
+    const decId = win.windowIdDec;
+    // this is what the implementation with xdotool would look like
+    cmd = `${cmd} && xdotool windowsize ${decId} ${win.width} ${win.height} windowmove ${decId} ${win.x} ${win.y}`
+  } else {
+    cmd = `${cmd} && ${baseCmd} -e ${newPositionStr}`;
+  }
+
   // add add states command
   if (win.states && win.states.length > 0) {
     cmd = `${cmd} &&  ${baseCmd} -b add,${win.states.join(',')}`;
   }
-
-  // add restore positions command
-  cmd = `${cmd} && ${baseCmd} -e ${newPositionStr}`;
-
-  // this is what the implementation with xdotool would look like
-  // cmd = `${cmd} && xdotool windowsize ${win.windowIdDec} ${win.width} ${win.height} windowmove ${win.windowIdDec} ${win.x} ${win.y}`;
 
   return new Promise(function (fulfill, reject) {
     exec(cmd, (error, stdout, stderr) => {
