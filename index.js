@@ -260,11 +260,13 @@ function transformWmctrlList(stdout) {
     if (fields && !isExcluded(fields[8])) {
       data.push({
         windowId: fields[1],
+        windowIdDec: parseInt(fields[1], 16),
         gravity: parseInt(fields[2], 10),
         x: parseInt(fields[4], 10),
         y: parseInt(fields[5], 10),
         width: parseInt(fields[6], 10),
         height: parseInt(fields[7], 10),
+        wmClassName: fields[8],
         executableFile: handleDesktopFiles(fields[8]),
       });
     }
@@ -320,6 +322,9 @@ function restoreWindowPosition(win) {
 
   // add restore positions command
   cmd = `${cmd} && ${baseCmd} -e ${newPositionStr}`;
+
+  // this is what the implementation with xdotool would look like
+  // cmd = `${cmd} && xdotool windowsize ${win.windowIdDec} ${win.width} ${win.height} windowmove ${win.windowIdDec} ${win.x} ${win.y}`;
 
   return new Promise(function (fulfill, reject) {
     exec(cmd, (error, stdout, stderr) => {
