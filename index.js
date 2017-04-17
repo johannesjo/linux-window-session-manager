@@ -2,25 +2,14 @@ const exec = require('child_process').exec;
 const spawn = require('child_process').spawn;
 const Store = require('jfs');
 const db = new Store('sessionStore');
-const POLL_ALL_APPS_STARTED_TIMEOUT = 2000;
-const IS_USE_XDOTOOL = true;
-const EXECUTABLE_FILE_MAP = {
-  'sun-awt-X11-XFramePeer.jetbrains-idea': 'jetbrains-idea.desktop',
-  'gnome-terminal-server.Gnome-terminal': 'gnome-terminal',
-};
+const fs = require('fs');
 
-const EXECUTABLE_FILE_EXCLUSIONS = [
-  'N/A',
-  'desktop_window.Nautilus',
-  'tilda.Tilda',
-];
-const STATES_MAP = {
-  '_NET_WM_STATE_MAXIMIZED_VERT': 'maximized_vert',
-  '_NET_WM_STATE_MAXIMIZED_HORZ': 'maximized_horz',
-  '_NET_WM_STATE_FULLSCREEN': 'fullscreen',
-  '_NET_WM_STATE_ABOVE': 'above',
-  '_NET_WM_STATE_BELOW': 'below',
-};
+const CFG = JSON.parse(fs.readFileSync('config.json', 'utf8'));
+const POLL_ALL_APPS_STARTED_TIMEOUT = CFG.POLL_ALL_APPS_STARTED_TIMEOUT;
+const IS_USE_XDOTOOL = CFG.IS_USE_XDOTOOL;
+const EXECUTABLE_FILE_MAP = CFG.EXECUTABLE_FILE_MAP;
+const EXECUTABLE_FILE_EXCLUSIONS = CFG.EXECUTABLE_FILE_EXCLUSIONS;
+const STATES_MAP = CFG.STATES_MAP;
 
 function savePositions(sessionName) {
   const sessionToHandle = sessionName || 'DEFAULT';

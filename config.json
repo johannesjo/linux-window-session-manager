@@ -1,0 +1,20 @@
+{
+  "IS_USE_XDOTOOL": true,
+  "POLL_ALL_APPS_STARTED_TIMEOUT": 2000,
+  "EXECUTABLE_FILE_MAP": {
+    "sun-awt-X11-XFramePeer.jetbrains-idea": "jetbrains-idea.desktop",
+    "gnome-terminal-server.Gnome-terminal": "gnome-terminal"
+  },
+  "EXECUTABLE_FILE_EXCLUSIONS": [
+    "N/A",
+    "desktop_window.Nautilus",
+    "tilda.Tilda"
+  ],
+  "STATES_MAP": {
+    "_NET_WM_STATE_MAXIMIZED_VERT": "maximized_vert",
+    "_NET_WM_STATE_MAXIMIZED_HORZ": "maximized_horz",
+    "_NET_WM_STATE_FULLSCREEN": "fullscreen",
+    "_NET_WM_STATE_ABOVE": "above",
+    "_NET_WM_STATE_BELOW": "below"
+  }
+}
