@@ -22,27 +22,87 @@ const STATES_MAP = {
 };
 
 function savePositions(sessionName) {
+  const sessionToHandle = sessionName || 'DEFAULT';
+
   getActiveWindowList((windowList) => {
     readWindowStates(windowList, () => {
       readDesktopFilePaths(windowList, () => {
-        db.save(sessionName || 'DEFAULT', windowList)
+        getConnectedDisplaysId((connectedDisplaysId) => {
+
+          // check if entry exists and update
+          db.get(sessionToHandle, (err, sessionData) => {
+            if (sessionData) {
+              console.log(sessionData);
+
+              sessionData[connectedDisplaysId] = windowList;
+              db.save(sessionToHandle, sessionData);
+            } else {
+              const newSession = {};
+              newSession[connectedDisplaysId] = windowList;
+              db.save(sessionToHandle, newSession);
+            }
+          });
+        });
       });
     });
   });
 }
 
 function startSession(sessionName) {
-  db.get(sessionName || 'DEFAULT', (err, savedWindowList) => {
-    getActiveWindowList((currentWindowList) => {
-      startSessionPrograms(savedWindowList, currentWindowList);
-      waitForAllAppsToStart(savedWindowList, (updatedCurrentWindowList) => {
-        updateWindowIds(savedWindowList, updatedCurrentWindowList);
-        restoreWindowPositions(savedWindowList, () => {
-          console.log('RESTORED SESSION');
+  const sessionToHandle = sessionName || 'DEFAULT';
+
+  db.get(sessionToHandle || 'DEFAULT', (err, sessionData) => {
+    getConnectedDisplaysId((connectedDisplaysId) => {
+      const savedWindowList = sessionData[connectedDisplaysId];
+
+      if (!savedWindowList) {
+        console.error(`no data for current display id ${connectedDisplaysId} saved yet`);
+        return;
+      }
+
+      getActiveWindowList((currentWindowList) => {
+        startSessionPrograms(savedWindowList, currentWindowList);
+        waitForAllAppsToStart(savedWindowList, (updatedCurrentWindowList) => {
+          updateWindowIds(savedWindowList, updatedCurrentWindowList);
+          restoreWindowPositions(savedWindowList, () => {
+            console.log('RESTORED SESSION');
+          });
         });
       });
     });
   });
+}
+
+function getConnectedDisplaysId(cb) {
+  const cmd = `xrandr --query | grep '\\bconnected\\b'`;
+  exec(cmd, (error, stdout, stderr) => {
+    if (error || stderr) {
+      console.error(error, stderr);
+    } else {
+      const connectedDisplaysId = createConnectedDisplaysId(stdout);
+      cb(connectedDisplaysId);
+    }
+  });
+}
+
+function createConnectedDisplaysId(stdout) {
+  let idString = '';
+  const RESOLUTION_REG_EX = /[0-9]{3,5}x[0-9]{3,5}/;
+  const lines = stdout.split('\n');
+  lines.forEach((line) => {
+    if (line !== '') {
+      const resolution = RESOLUTION_REG_EX.exec(line);
+      // only do this if we have a resolution as that means that the display is active
+      if (resolution) {
+        idString += resolution + ';';
+      }
+    }
+  });
+
+  if (idString.length) {
+    // cut off last semicolon
+    return idString.substring(0, idString.length - 1);
+  }
 }
 
 function waitForAllAppsToStart(savedWindowList, cb) {
@@ -247,7 +307,7 @@ function restoreWindowPositions(savedWindowList, cb) {
 
 function restoreWindowPosition(win) {
   const newPositionStr = `${win.gravity},${win.x},${win.y},${win.width},${win.height}`;
-  const removeStatesStr = 'remove,maximized_vert,maximized_horz,fullscreen,above,below';
+  const removeStatesStr = 'remove,maximized_vert,maximized_horz,fullscreen,above,below,hidden,sticky,modal,shaded,demands_attention';
   const baseCmd = `wmctrl -i -r ${win.windowId}`;
 
   // add remove states command
@@ -280,3 +340,4 @@ if (process.argv[2] === 'save') {
 } else {
   startSession();
 }
+
