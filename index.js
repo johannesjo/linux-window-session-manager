@@ -11,6 +11,11 @@ const EXECUTABLE_FILE_MAP = CFG.EXECUTABLE_FILE_MAP;
 const EXECUTABLE_FILE_EXCLUSIONS = CFG.EXECUTABLE_FILE_EXCLUSIONS;
 const STATES_MAP = CFG.STATES_MAP;
 
+module.exports = {
+  savePositions,
+  restoreSession,
+};
+
 function savePositions(sessionName) {
   const sessionToHandle = sessionName || 'DEFAULT';
 
@@ -23,7 +28,6 @@ function savePositions(sessionName) {
           db.get(sessionToHandle, (err, sessionData) => {
             if (sessionData) {
               console.log(sessionData);
-
               sessionData[connectedDisplaysId] = windowList;
               db.save(sessionToHandle, sessionData);
             } else {
@@ -38,7 +42,7 @@ function savePositions(sessionName) {
   });
 }
 
-function startSession(sessionName) {
+function restoreSession(sessionName) {
   const sessionToHandle = sessionName || 'DEFAULT';
 
   db.get(sessionToHandle || 'DEFAULT', (err, sessionData) => {
@@ -334,9 +338,4 @@ function restoreWindowPosition(win) {
   });
 }
 
-if (process.argv[2] === 'save') {
-  savePositions();
-} else {
-  startSession();
-}
 

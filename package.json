@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Window session manager for linux",
   "main": "index.js",
+  "bin": {
+    "lwsm": "cmd.js"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js"
@@ -11,5 +14,6 @@
   "license": "ISC",
   "dependencies": {
     "jfs": "^0.2.6"
-  }
+  },
+  "preferGlobal": true
 }
