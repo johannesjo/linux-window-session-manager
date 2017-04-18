@@ -286,15 +286,24 @@ function handleDesktopFiles(executableFileString) {
 }
 
 function updateWindowIds(savedWindowList, currentWindowList) {
+  const executableFilesMap = {};
   savedWindowList.forEach((win) => {
-    win.windowId = getMatchingWindowId(win, currentWindowList);
+    if (!executableFilesMap[win.executableFile]) {
+      executableFilesMap[win.executableFile] = getMatchingWindows(win, currentWindowList);
+    }
+    win.windowId = executableFilesMap[win.executableFile][0].windowId;
     win.windowIdDec = parseInt(win.windowId, 16);
+    executableFilesMap[win.executableFile].shift();
   });
 }
 
 function getMatchingWindowId(win, currentWindowList) {
   const currentWindow = currentWindowList.find((winFromCurrent) => win.executableFile === winFromCurrent.executableFile);
   return currentWindow && currentWindow.windowId;
+}
+
+function getMatchingWindows(win, currentWindowList) {
+  return currentWindowList.filter((winFromCurrent) => win.executableFile === winFromCurrent.executableFile);
 }
 
 function restoreWindowPositions(savedWindowList, cb) {
