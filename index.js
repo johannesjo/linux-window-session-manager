@@ -186,21 +186,29 @@ function readFilePath(win) {
 // TODO check for how many instances there should be running of a program
 function startSessionPrograms(windowList, currentWindowList) {
   windowList.forEach((win) => {
-    if (!isProgramAlreadyRunning(win.executableFile, currentWindowList)) {
+    const numberOfInstancesOfWin = getNumberOfInstancesToRun(win, windowList);
+    if (!isProgramAlreadyRunning(win.executableFile, currentWindowList, numberOfInstancesOfWin, win.instancesStarted)) {
       startProgram(win.executableFile, win.desktopFilePath);
+      win.instancesStarted += 1;
     }
   });
 }
 
-function isProgramAlreadyRunning(executableFile, currentWindowList, numberOfInstancesToRun = 1) {
+function getNumberOfInstancesToRun(windowToMatch, windowList) {
+  return windowList.filter((win) => {
+    return win.executableFile === windowToMatch.executableFile;
+  }).length;
+}
+
+function isProgramAlreadyRunning(executableFile, currentWindowList, numberOfInstancesToRun = 1, instancesStarted = 0) {
   let instancesRunning = 0;
   currentWindowList.forEach((win) => {
     if (win.executableFile === executableFile) {
       instancesRunning++;
     }
   });
-  console.log(executableFile + ' is running: ', instancesRunning >= numberOfInstancesToRun);
-  return instancesRunning >= numberOfInstancesToRun;
+  console.log(executableFile + ' is running: ', instancesRunning + instancesStarted >= numberOfInstancesToRun, numberOfInstancesToRun, instancesStarted);
+  return instancesRunning + instancesStarted >= numberOfInstancesToRun;
 }
 
 function getActiveWindowList(cb) {
