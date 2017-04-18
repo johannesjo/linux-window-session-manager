@@ -93,16 +93,31 @@ function restoreSession(sessionName) {
         console.error(`no data for current display id ${connectedDisplaysId} saved yet`);
         return;
       }
-
-      getActiveWindowList((currentWindowList) => {
-        startSessionPrograms(savedWindowList, currentWindowList);
-        waitForAllAppsToStart(savedWindowList, (updatedCurrentWindowList) => {
-          updateWindowIds(savedWindowList, updatedCurrentWindowList);
-          restoreWindowPositions(savedWindowList, () => {
-            console.log('RESTORED SESSION');
+      goToFirstWorkspace().then(() => {
+        getActiveWindowList((currentWindowList) => {
+          startSessionPrograms(savedWindowList, currentWindowList);
+          waitForAllAppsToStart(savedWindowList, (updatedCurrentWindowList) => {
+            updateWindowIds(savedWindowList, updatedCurrentWindowList);
+            restoreWindowPositions(savedWindowList, () => {
+              console.log('RESTORED SESSION');
+            });
           });
         });
       });
+    });
+  });
+}
+
+function goToFirstWorkspace() {
+  const cmd = 'xdotool set_desktop_viewport 0 0';
+  return new Promise((fulfill, reject) => {
+    exec(cmd, (error, stdout, stderr) => {
+      if (error || stderr) {
+        console.error(error, stderr);
+        reject(error || stderr);
+      } else {
+        fulfill();
+      }
     });
   });
 }
