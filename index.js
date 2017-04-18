@@ -1,20 +1,60 @@
 const exec = require('child_process').exec;
 const spawn = require('child_process').spawn;
 const Store = require('jfs');
-const db = new Store('sessionStore');
 const fs = require('fs');
 
-const CFG = JSON.parse(fs.readFileSync('config.json', 'utf8'));
-const POLL_ALL_APPS_STARTED_TIMEOUT = CFG.POLL_ALL_APPS_STARTED_TIMEOUT;
-const IS_USE_XDOTOOL = CFG.IS_USE_XDOTOOL;
-const EXECUTABLE_FILE_MAP = CFG.EXECUTABLE_FILE_MAP;
-const EXECUTABLE_FILE_EXCLUSIONS = CFG.EXECUTABLE_FILE_EXCLUSIONS;
-const STATES_MAP = CFG.STATES_MAP;
+let db;
+let CFG;
 
 module.exports = {
   savePositions,
   restoreSession,
 };
+
+init();
+
+function init() {
+  const mkdirSync = (dirPath) => {
+    try {
+      fs.mkdirSync(dirPath);
+    } catch (err) {
+      if (err.code !== 'EEXIST') {
+        throw err;
+      }
+    }
+  };
+
+  const copySync = (src, dest) => {
+    if (!fs.existsSync(src)) {
+      return false;
+    }
+    const data = fs.readFileSync(src, 'utf-8');
+    fs.writeFileSync(dest, data);
+  };
+
+  const dataDir = getUserHome() + '/.lwsm';
+  const sessionDataDir = dataDir + '/sessionData';
+
+  try {
+    // if config is already in place
+    CFG = JSON.parse(fs.readFileSync(dataDir + '/config.json', 'utf8'));
+  } catch (e) {
+    // if there is no config yet load default cfg and create files and dirs
+    CFG = JSON.parse(fs.readFileSync(__dirname + '/config.json', 'utf8'));
+    mkdirSync(dataDir);
+    mkdirSync(sessionDataDir);
+
+    // copy files
+    copySync(__dirname + '/config.json', dataDir + '/config.json');
+  }
+
+  // create data store
+  db = new Store(sessionDataDir);
+}
+
+function getUserHome() {
+  return process.env[(process.platform === 'win32') ? 'USERPROFILE' : 'HOME'];
+}
 
 function savePositions(sessionName) {
   const sessionToHandle = sessionName || 'DEFAULT';
@@ -108,7 +148,7 @@ function waitForAllAppsToStart(savedWindowList, cb) {
         cb(currentWindowList);
       }
     });
-  }, POLL_ALL_APPS_STARTED_TIMEOUT);
+  }, CFG.POLL_ALL_APPS_STARTED_TIMEOUT);
 }
 
 function isAllAppsStarted(savedWindowList, currentWindowList) {
@@ -144,8 +184,8 @@ function readWindowState(win) {
         const states = stringStates.split(' = ');
         win.states = [];
         states.forEach((state) => {
-          if (state !== '' && STATES_MAP[state]) {
-            win.states.push(STATES_MAP[state]);
+          if (state !== '' && CFG.STATES_MAP[state]) {
+            win.states.push(CFG.STATES_MAP[state]);
           }
         });
         fulfill(win.states);
@@ -229,7 +269,7 @@ function isDesktopFile(executableFile) {
 }
 
 function isExcluded(executableFile) {
-  return EXECUTABLE_FILE_EXCLUSIONS.indexOf(executableFile) > -1;
+  return CFG.EXECUTABLE_FILE_EXCLUSIONS.indexOf(executableFile) > -1;
 }
 
 function startProgram(executableFile, desktopFilePath) {
@@ -277,8 +317,8 @@ function transformWmctrlList(stdout) {
 }
 
 function handleDesktopFiles(executableFileString) {
-  if (EXECUTABLE_FILE_MAP[executableFileString]) {
-    return EXECUTABLE_FILE_MAP[executableFileString];
+  if (CFG.EXECUTABLE_FILE_MAP[executableFileString]) {
+    return CFG.EXECUTABLE_FILE_MAP[executableFileString];
   } else {
     const splitValues = executableFileString.split('.');
     return splitValues[0] + '.desktop';
@@ -328,7 +368,7 @@ function restoreWindowPosition(win) {
   let cmd = `${baseCmd} -b  ${removeStatesStr}`;
 
   // add restore positions command
-  if (IS_USE_XDOTOOL) {
+  if (CFG.IS_USE_XDOTOOL) {
     const decId = win.windowIdDec;
     // this is what the implementation with xdotool would look like
     cmd = `${cmd} && xdotool windowsize ${decId} ${win.width} ${win.height} windowmove ${decId} ${win.x} ${win.y}`
