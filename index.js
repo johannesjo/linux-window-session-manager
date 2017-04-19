@@ -4,6 +4,7 @@ const exec = require('child_process').exec;
 const spawn = require('child_process').spawn;
 const Store = require('jfs');
 const fs = require('fs');
+const DESKTOP_ENV = process.env.DESKTOP_SESSION;
 
 let db;
 let CFG;
@@ -323,12 +324,12 @@ function getActiveWindowList() {
 
   return new Promise((fulfill, reject) => {
     exec(cmd, function (error, stdout, stderr) {
-      const data = transformWmctrlList(stdout);
+      const windowList = transformWmctrlList(stdout);
       if (error || stderr) {
         console.error(error, stderr);
         reject(error | stderr);
       } else {
-        fulfill(data);
+        fulfill(windowList);
       }
     });
   });

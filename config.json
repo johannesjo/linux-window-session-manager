@@ -9,7 +9,9 @@
   "EXECUTABLE_FILE_EXCLUSIONS": [
     "N/A",
     "desktop_window.Nautilus",
-    "tilda.Tilda"
+    "tilda.Tilda",
+    "Navigator.desktop",
+    "Popup.desktop"
   ],
   "STATES_MAP": {
     "_NET_WM_STATE_MAXIMIZED_VERT": "maximized_vert",
