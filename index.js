@@ -39,20 +39,20 @@ function init() {
   const dataDir = getUserHome() + '/.lwsm';
   const sessionDataDir = dataDir + '/sessionData';
 
-  try {
-    // if config is already in place
-    CFG = JSON.parse(fs.readFileSync(dataDir + '/config.json', 'utf8'));
-  } catch (e) {
-    // if there is no config yet load default cfg and create files and dirs
-    CFG = JSON.parse(fs.readFileSync(__dirname + '/config.json', 'utf8'));
-    mkdirSync(dataDir);
-    mkdirSync(sessionDataDir);
+  //try {
+  // if config is already in place
+  //CFG = JSON.parse(fs.readFileSync(dataDir + '/config.json', 'utf8'));
+  //} catch (e) {
+  // if there is no config yet load default cfg and create files and dirs
+  CFG = JSON.parse(fs.readFileSync(__dirname + '/config.json', 'utf8'));
+  mkdirSync(dataDir);
+  mkdirSync(sessionDataDir);
 
-    // copy files
-    copySync(__dirname + '/config.json', dataDir + '/config.json');
-  }
+  // copy files
+  copySync(__dirname + '/config.json', dataDir + '/config.json');
+//}
 
-  // create data store
+// create data store
   db = new Store(sessionDataDir);
 }
 
@@ -245,8 +245,8 @@ function readAndSetWindowState(win) {
         const states = stringStates.split(' = ');
         win.states = [];
         states.forEach((state) => {
-          if (state !== '' && CFG.STATES_MAP[state]) {
-            win.states.push(CFG.STATES_MAP[state]);
+          if (state !== '' && CFG.WM_STATES_MAP[state]) {
+            win.states.push(CFG.WM_STATES_MAP[state]);
           }
         });
         fulfill(win.states);
@@ -258,11 +258,9 @@ function readAndSetWindowState(win) {
 function guessAndSetDesktopFilePaths(windowList, inputHandler) {
   const promises = [];
   windowList.forEach((win) => {
-    if (isDesktopFile(win.executableFile)) {
-      promises.push(() => {
-        return guessFilePath(win, inputHandler);
-      });
-    }
+    promises.push(() => {
+      return guessFilePath(win, inputHandler);
+    });
   });
 
   return new Promise((fulfill, reject) => {
@@ -276,14 +274,27 @@ function guessAndSetDesktopFilePaths(windowList, inputHandler) {
 
 function guessFilePath(win, inputHandler) {
   return new Promise((fulfill, reject) => {
-    exec('locate ' + win.executableFile, (error, stdout, stderr) => {
-      inputHandler(error || stderr, win, stdout)
+    function callInputHandler(error, stdout) {
+      inputHandler(error, win, stdout)
         .then((input) => {
-          win.desktopFilePath = input;
-          fulfill(win.desktopFilePath);
+          if (isDesktopFile(win.executableFile)) {
+            win.desktopFilePath = input;
+            fulfill(win.desktopFilePath);
+          } else {
+            win.executableFile = input;
+            fulfill(win.executableFile);
+          }
         })
         .catch(reject);
-    });
+    }
+
+    if (isDesktopFile(win.executableFile)) {
+      exec('locate ' + win.executableFile, (error, stdout, stderr) => {
+        callInputHandler(error || stderr, stdout);
+      });
+    } else {
+      callInputHandler(true, win.executableFile);
+    }
   });
 }
 
@@ -293,7 +304,7 @@ function startSessionPrograms(windowList, currentWindowList) {
 
   windowList.forEach((win) => {
     const numberOfInstancesOfWin = getNumberOfInstancesToRun(win, windowList);
-    if (!isProgramAlreadyRunning(win.executableFile, currentWindowList, numberOfInstancesOfWin, win.instancesStarted)) {
+    if (!isProgramAlreadyRunning(win.wmClassName, currentWindowList, numberOfInstancesOfWin, win.instancesStarted)) {
       promises.push(startProgram(win.executableFile, win.desktopFilePath));
       win.instancesStarted += 1;
     }
@@ -310,18 +321,18 @@ function startSessionPrograms(windowList, currentWindowList) {
 
 function getNumberOfInstancesToRun(windowToMatch, windowList) {
   return windowList.filter((win) => {
-    return win.executableFile === windowToMatch.executableFile;
+    return win.wmClassName === windowToMatch.wmClassName;
   }).length;
 }
 
-function isProgramAlreadyRunning(executableFile, currentWindowList, numberOfInstancesToRun = 1, instancesStarted = 0) {
+function isProgramAlreadyRunning(wmClassName, currentWindowList, numberOfInstancesToRun = 1, instancesStarted = 0) {
   let instancesRunning = 0;
   currentWindowList.forEach((win) => {
-    if (win.executableFile === executableFile) {
+    if (win.wmClassName === wmClassName) {
       instancesRunning++;
     }
   });
-  console.log(executableFile + ' is running: ', instancesRunning + instancesStarted >= numberOfInstancesToRun, numberOfInstancesToRun, instancesStarted);
+  console.log(wmClassName + ' is running: ', instancesRunning + instancesStarted >= numberOfInstancesToRun, numberOfInstancesToRun, instancesStarted);
   return instancesRunning + instancesStarted >= numberOfInstancesToRun;
 }
 
@@ -345,8 +356,8 @@ function isDesktopFile(executableFile) {
   return executableFile.match(/desktop$/);
 }
 
-function isExcluded(executableFile) {
-  return CFG.EXECUTABLE_FILE_EXCLUSIONS.indexOf(executableFile) > -1;
+function isExcludedWmClassName(wmClassName) {
+  return CFG.WM_CLASS_EXCLUSIONS.indexOf(wmClassName) > -1;
 }
 
 function startProgram(executableFile, desktopFilePath) {
@@ -378,7 +389,7 @@ function transformWmctrlList(stdout) {
   const lines = stdout.split('\n');
   lines.forEach((line) => {
     const fields = LINE_REG_EX.exec(line);
-    if (fields && !isExcluded(fields[8])) {
+    if (fields && !isExcludedWmClassName(fields[8])) {
       data.push({
         windowId: fields[1],
         windowIdDec: parseInt(fields[1], 16),
@@ -388,31 +399,32 @@ function transformWmctrlList(stdout) {
         width: parseInt(fields[6], 10),
         height: parseInt(fields[7], 10),
         wmClassName: fields[8],
-        executableFile: handleDesktopFiles(fields[8]),
+        executableFile: parseExecutableFileFromWmClassName(fields[8]),
       });
     }
   });
   return data;
 }
 
-function handleDesktopFiles(executableFileString) {
-  if (CFG.EXECUTABLE_FILE_MAP[executableFileString]) {
-    return CFG.EXECUTABLE_FILE_MAP[executableFileString];
+function parseExecutableFileFromWmClassName(wmClassName) {
+  const executableFile = CFG.WM_CLASS_AND_EXECUTABLE_FILE_MAP[wmClassName];
+  if (executableFile) {
+    return executableFile;
   } else {
-    const splitValues = executableFileString.split('.');
+    const splitValues = wmClassName.split('.');
     return splitValues[0] + '.desktop';
   }
 }
 
 function updateWindowIds(savedWindowList, currentWindowList) {
-  const executableFilesMap = {};
+  const wmClassNameMap = {};
   savedWindowList.forEach((win) => {
-    if (!executableFilesMap[win.executableFile]) {
-      executableFilesMap[win.executableFile] = getMatchingWindows(win, currentWindowList);
+    if (!wmClassNameMap[win.wmClassName]) {
+      wmClassNameMap[win.wmClassName] = getMatchingWindows(win, currentWindowList);
     }
-    win.windowId = executableFilesMap[win.executableFile][0].windowId;
+    win.windowId = wmClassNameMap[win.wmClassName][0].windowId;
     win.windowIdDec = parseInt(win.windowId, 16);
-    executableFilesMap[win.executableFile].shift();
+    wmClassNameMap[win.wmClassName].shift();
   });
 }
 

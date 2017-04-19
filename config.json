@@ -2,19 +2,19 @@
   "IS_USE_XDOTOOL": true,
   "POLL_ALL_APPS_STARTED_TIMEOUT": 2000,
   "POLL_ALL_MAX_TIMEOUT": 30000,
-  "EXECUTABLE_FILE_MAP": {
+  "WM_CLASS_AND_EXECUTABLE_FILE_MAP": {
     "sun-awt-X11-XFramePeer.jetbrains-idea": "jetbrains-idea.desktop",
     "gnome-terminal-server.Gnome-terminal": "gnome-terminal",
-    "VirtualBox.VirtualBox": "virtualbox.desktop"
+    "VirtualBox.VirtualBox": "virtualbox.desktop",
+    "Navigator.Firefox": "firefox.desktop"
   },
-  "EXECUTABLE_FILE_EXCLUSIONS": [
+  "WM_CLASS_EXCLUSIONS": [
     "N/A",
     "desktop_window.Nautilus",
     "tilda.Tilda",
-    "Navigator.desktop",
     "Popup.desktop"
   ],
-  "STATES_MAP": {
+  "WM_STATES_MAP": {
     "_NET_WM_STATE_MAXIMIZED_VERT": "maximized_vert",
     "_NET_WM_STATE_MAXIMIZED_HORZ": "maximized_horz",
     "_NET_WM_STATE_FULLSCREEN": "fullscreen",

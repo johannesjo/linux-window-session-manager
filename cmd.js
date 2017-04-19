@@ -24,7 +24,11 @@ const savePrompts = {
 
       if (error) {
         console.log(`Please enter a executable path or desktop file location for ${win.executableFile}`);
-        askForVal();
+        if (stdout) {
+          askForVal(stdout.split('\n'));
+        } else {
+          askForVal();
+        }
       } else {
         console.log(`We found the following entries for ${win.executableFile} as executable / desktop file to launch:`);
         const displayEntries = stdout.split('\n');
