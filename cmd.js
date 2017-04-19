@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+'use strict';
+
 const base = require('./index');
 
 if (process.argv[2] === 'save') {
