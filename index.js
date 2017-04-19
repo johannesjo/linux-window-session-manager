@@ -105,7 +105,6 @@ function restoreSession(sessionName) {
       .then(getConnectedDisplaysId)
       .then((connectedDisplaysId) => {
         savedWindowList = sessionData[connectedDisplaysId];
-        console.log(savedWindowList);
 
         if (!savedWindowList) {
           console.error(`no data for current display id '${connectedDisplaysId}' saved yet`);
