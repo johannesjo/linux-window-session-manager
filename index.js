@@ -4,6 +4,7 @@ const exec = require('child_process').exec;
 const spawn = require('child_process').spawn;
 const Store = require('jfs');
 const fs = require('fs');
+const waterfall = require('promise-waterfall');
 const DESKTOP_ENV = process.env.DESKTOP_SESSION;
 
 let db;
@@ -59,13 +60,13 @@ function getUserHome() {
   return process.env[(process.platform === 'win32') ? 'USERPROFILE' : 'HOME'];
 }
 
-function savePositions(sessionName) {
+function savePositions(sessionName, inputHandlers) {
   const sessionToHandle = sessionName || 'DEFAULT';
   getActiveWindowList()
     .then((windowList) => {
       return Promise.all([
         readAndSetWindowStates(windowList),
-        guessAndSetDesktopFilePaths(windowList),
+        guessAndSetDesktopFilePaths(windowList, inputHandlers.desktopFilePath),
         getConnectedDisplaysId(),
       ]);
     })
@@ -255,16 +256,18 @@ function readAndSetWindowState(win) {
   });
 }
 
-function guessAndSetDesktopFilePaths(windowList) {
+function guessAndSetDesktopFilePaths(windowList, inputHandler) {
   const promises = [];
   windowList.forEach((win) => {
     if (isDesktopFile(win.executableFile)) {
-      promises.push(guessFilePath(win));
+      promises.push(() => {
+        return guessFilePath(win, inputHandler);
+      });
     }
   });
 
   return new Promise((fulfill, reject) => {
-    Promise.all(promises)
+    waterfall(promises)
       .then(() => {
         fulfill(windowList);
       })
@@ -272,18 +275,15 @@ function guessAndSetDesktopFilePaths(windowList) {
   });
 }
 
-function guessFilePath(win) {
+function guessFilePath(win, inputHandler) {
   return new Promise((fulfill, reject) => {
     exec('locate ' + win.executableFile, (error, stdout, stderr) => {
-      if (error || stderr) {
-        win.desktopFilePath = false;
-        reject(error || stderr);
-      } else {
-        const lines = stdout.split('\n');
-        // just default to first for now
-        win.desktopFilePath = lines[0];
-        fulfill(win.desktopFilePath);
-      }
+      inputHandler(error || stderr, win, stdout)
+        .then((input) => {
+          win.desktopFilePath = input;
+          fulfill(win.desktopFilePath);
+        })
+        .catch(reject);
     });
   });
 }
