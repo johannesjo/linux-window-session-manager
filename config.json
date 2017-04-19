@@ -4,7 +4,8 @@
   "POLL_ALL_MAX_TIMEOUT": 30000,
   "EXECUTABLE_FILE_MAP": {
     "sun-awt-X11-XFramePeer.jetbrains-idea": "jetbrains-idea.desktop",
-    "gnome-terminal-server.Gnome-terminal": "gnome-terminal"
+    "gnome-terminal-server.Gnome-terminal": "gnome-terminal",
+    "VirtualBox.VirtualBox": "virtualbox.desktop"
   },
   "EXECUTABLE_FILE_EXCLUSIONS": [
     "N/A",

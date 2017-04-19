@@ -61,34 +61,36 @@ function getUserHome() {
 
 function savePositions(sessionName) {
   const sessionToHandle = sessionName || 'DEFAULT';
-
   getActiveWindowList()
     .then((windowList) => {
-      readWindowStates(windowList)
-        .then(() => {
-          readDesktopFilePaths(windowList)
-            .then(() => {
-              getConnectedDisplaysId()
-                .then((connectedDisplaysId) => {
+      return Promise.all([
+        readAndSetWindowStates(windowList),
+        guessAndSetDesktopFilePaths(windowList),
+        getConnectedDisplaysId(),
+      ]);
+    })
+    .then((results) => {
+      const windowList = results[0];
+      const connectedDisplaysId = results[2];
 
-                  // check if entry exists and update
-                  db.get(sessionToHandle, (err, sessionData) => {
-                    if (sessionData) {
-                      sessionData[connectedDisplaysId] = windowList;
-                      db.save(sessionToHandle, sessionData, () => {
-                        console.log('SAVED SESSION: ' + sessionToHandle);
-                      });
-                    } else {
-                      const newSession = {};
-                      newSession[connectedDisplaysId] = windowList;
-                      db.save(sessionToHandle, newSession, () => {
-                        console.log('SAVED SESSION: ' + sessionToHandle);
-                      });
-                    }
-                  });
-                });
-            });
-        });
+      // check if entry exists and update
+      db.get(sessionToHandle, (err, sessionData) => {
+        if (sessionData) {
+          sessionData[connectedDisplaysId] = windowList;
+          db.save(sessionToHandle, sessionData, () => {
+            console.log('SAVED SESSION: ' + sessionToHandle);
+          });
+        } else {
+          const newSession = {};
+          newSession[connectedDisplaysId] = windowList;
+          db.save(sessionToHandle, newSession, () => {
+            console.log('SAVED SESSION: ' + sessionToHandle);
+          });
+        }
+      });
+    })
+    .catch((err) => {
+      console.error('An error occurred', err);
     });
 }
 
@@ -96,31 +98,36 @@ function restoreSession(sessionName) {
   const sessionToHandle = sessionName || 'DEFAULT';
 
   db.get(sessionToHandle || 'DEFAULT', (err, sessionData) => {
-    getConnectedDisplaysId()
+    let savedWindowList;
+
+    goToFirstWorkspace()
+      .then(getConnectedDisplaysId)
       .then((connectedDisplaysId) => {
-        const savedWindowList = sessionData[connectedDisplaysId];
+        savedWindowList = sessionData[connectedDisplaysId];
+        console.log(savedWindowList);
 
         if (!savedWindowList) {
-          console.error(`no data for current display id ${connectedDisplaysId} saved yet`);
+          console.error(`no data for current display id '${connectedDisplaysId}' saved yet`);
           return;
         }
-        goToFirstWorkspace()
-          .then(() => {
-            getActiveWindowList()
-              .then((currentWindowList) => {
-                startSessionPrograms(savedWindowList, currentWindowList)
-                  .then(() => {
-                    waitForAllAppsToStart(savedWindowList)
-                      .then((updatedCurrentWindowList) => {
-                        updateWindowIds(savedWindowList, updatedCurrentWindowList);
-                        restoreWindowPositions(savedWindowList)
-                          .then(() => {
-                            console.log('RESTORED SESSION: ' + sessionToHandle);
-                          });
-                      });
-                  });
-              });
-          });
+        return getActiveWindowList();
+      })
+      .then((currentWindowList) => {
+        return startSessionPrograms(savedWindowList, currentWindowList);
+      })
+      .then(() => {
+        // gets current window list by itself and returns the updated variant
+        return waitForAllAppsToStart(savedWindowList)
+      })
+      .then((updatedCurrentWindowList) => {
+        updateWindowIds(savedWindowList, updatedCurrentWindowList);
+        return restoreWindowPositions(savedWindowList);
+      })
+      .then(() => {
+        console.log('RESTORED SESSION: ' + sessionToHandle);
+      })
+      .catch((err) => {
+        console.error('An error occurred', err);
       });
   });
 }
@@ -211,22 +218,22 @@ function isAllAppsStarted(savedWindowList, currentWindowList) {
   return isAllStarted;
 }
 
-function readWindowStates(windowList) {
+function readAndSetWindowStates(windowList) {
   return new Promise((fulfill, reject) => {
     const promises = [];
     windowList.forEach((win) => {
-      promises.push(readWindowState(win));
+      promises.push(readAndSetWindowState(win));
     });
 
     Promise.all(promises)
-      .then((results) => {
-        fulfill(results);
+      .then(() => {
+        fulfill(windowList);
       })
       .catch(reject);
   });
 }
 
-function readWindowState(win) {
+function readAndSetWindowState(win) {
   return new Promise((fulfill, reject) => {
     exec(`xprop -id ${win.windowId} | grep "_NET_WM_STATE(ATOM)"`, (error, stdout, stderr) => {
       if (error || stderr) {
@@ -248,28 +255,28 @@ function readWindowState(win) {
   });
 }
 
-function readDesktopFilePaths(windowList) {
+function guessAndSetDesktopFilePaths(windowList) {
   const promises = [];
   windowList.forEach((win) => {
     if (isDesktopFile(win.executableFile)) {
-      promises.push(readFilePath(win));
+      promises.push(guessFilePath(win));
     }
   });
 
   return new Promise((fulfill, reject) => {
     Promise.all(promises)
-      .then((results) => {
-        fulfill(results);
+      .then(() => {
+        fulfill(windowList);
       })
       .catch(reject);
   });
 }
 
-function readFilePath(win) {
+function guessFilePath(win) {
   return new Promise((fulfill, reject) => {
     exec('locate ' + win.executableFile, (error, stdout, stderr) => {
       if (error || stderr) {
-        console.error(error, stderr);
+        win.desktopFilePath = false;
         reject(error || stderr);
       } else {
         const lines = stdout.split('\n');
