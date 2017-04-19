@@ -59,52 +59,66 @@ function getUserHome() {
 function savePositions(sessionName) {
   const sessionToHandle = sessionName || 'DEFAULT';
 
-  getActiveWindowList((windowList) => {
-    readWindowStates(windowList, () => {
-      readDesktopFilePaths(windowList, () => {
-        getConnectedDisplaysId((connectedDisplaysId) => {
+  getActiveWindowList()
+    .then((windowList) => {
+      readWindowStates(windowList)
+        .then(() => {
+          readDesktopFilePaths(windowList)
+            .then(() => {
+              getConnectedDisplaysId()
+                .then((connectedDisplaysId) => {
 
-          // check if entry exists and update
-          db.get(sessionToHandle, (err, sessionData) => {
-            if (sessionData) {
-              console.log(sessionData);
-              sessionData[connectedDisplaysId] = windowList;
-              db.save(sessionToHandle, sessionData);
-            } else {
-              const newSession = {};
-              newSession[connectedDisplaysId] = windowList;
-              db.save(sessionToHandle, newSession);
-            }
-          });
+                  // check if entry exists and update
+                  db.get(sessionToHandle, (err, sessionData) => {
+                    if (sessionData) {
+                      sessionData[connectedDisplaysId] = windowList;
+                      db.save(sessionToHandle, sessionData, () => {
+                        console.log('SAVED SESSION: ' + sessionToHandle);
+                      });
+                    } else {
+                      const newSession = {};
+                      newSession[connectedDisplaysId] = windowList;
+                      db.save(sessionToHandle, newSession, () => {
+                        console.log('SAVED SESSION: ' + sessionToHandle);
+                      });
+                    }
+                  });
+                });
+            });
         });
-      });
     });
-  });
 }
 
 function restoreSession(sessionName) {
   const sessionToHandle = sessionName || 'DEFAULT';
 
   db.get(sessionToHandle || 'DEFAULT', (err, sessionData) => {
-    getConnectedDisplaysId((connectedDisplaysId) => {
-      const savedWindowList = sessionData[connectedDisplaysId];
+    getConnectedDisplaysId()
+      .then((connectedDisplaysId) => {
+        const savedWindowList = sessionData[connectedDisplaysId];
 
-      if (!savedWindowList) {
-        console.error(`no data for current display id ${connectedDisplaysId} saved yet`);
-        return;
-      }
-      goToFirstWorkspace().then(() => {
-        getActiveWindowList((currentWindowList) => {
-          startSessionPrograms(savedWindowList, currentWindowList);
-          waitForAllAppsToStart(savedWindowList, (updatedCurrentWindowList) => {
-            updateWindowIds(savedWindowList, updatedCurrentWindowList);
-            restoreWindowPositions(savedWindowList, () => {
-              console.log('RESTORED SESSION');
-            });
+        if (!savedWindowList) {
+          console.error(`no data for current display id ${connectedDisplaysId} saved yet`);
+          return;
+        }
+        goToFirstWorkspace()
+          .then(() => {
+            getActiveWindowList()
+              .then((currentWindowList) => {
+                startSessionPrograms(savedWindowList, currentWindowList)
+                  .then(() => {
+                    waitForAllAppsToStart(savedWindowList)
+                      .then((updatedCurrentWindowList) => {
+                        updateWindowIds(savedWindowList, updatedCurrentWindowList);
+                        restoreWindowPositions(savedWindowList)
+                          .then(() => {
+                            console.log('RESTORED SESSION: ' + sessionToHandle);
+                          });
+                      });
+                  });
+              });
           });
-        });
       });
-    });
   });
 }
 
@@ -122,19 +136,22 @@ function goToFirstWorkspace() {
   });
 }
 
-function getConnectedDisplaysId(cb) {
+function getConnectedDisplaysId() {
   const cmd = `xrandr --query | grep '\\bconnected\\b'`;
-  exec(cmd, (error, stdout, stderr) => {
-    if (error || stderr) {
-      console.error(error, stderr);
-    } else {
-      const connectedDisplaysId = createConnectedDisplaysId(stdout);
-      cb(connectedDisplaysId);
-    }
+  return new Promise((fulfill, reject) => {
+    exec(cmd, (error, stdout, stderr) => {
+      if (error || stderr) {
+        console.error(error, stderr);
+        reject(error || stderr);
+      } else {
+        const connectedDisplaysId = parseConnectedDisplaysId(stdout);
+        fulfill(connectedDisplaysId);
+      }
+    });
   });
 }
 
-function createConnectedDisplaysId(stdout) {
+function parseConnectedDisplaysId(stdout) {
   let idString = '';
   const RESOLUTION_REG_EX = /[0-9]{3,5}x[0-9]{3,5}/;
   const lines = stdout.split('\n');
@@ -154,16 +171,31 @@ function createConnectedDisplaysId(stdout) {
   }
 }
 
-function waitForAllAppsToStart(savedWindowList, cb) {
-  setTimeout(() => {
-    getActiveWindowList((currentWindowList) => {
-      if (!isAllAppsStarted(savedWindowList, currentWindowList)) {
-        waitForAllAppsToStart(savedWindowList, cb);
-      } else {
-        cb(currentWindowList);
-      }
-    });
-  }, CFG.POLL_ALL_APPS_STARTED_TIMEOUT);
+function waitForAllAppsToStart(savedWindowList) {
+  let totalTimeWaited = 0;
+  return new Promise((fulfill, reject) => {
+    function pollAllAppsStarted(savedWindowList) {
+      setTimeout(() => {
+        getActiveWindowList().then((currentWindowList) => {
+          totalTimeWaited += CFG.POLL_ALL_APPS_STARTED_TIMEOUT;
+          if (!isAllAppsStarted(savedWindowList, currentWindowList)) {
+            if (totalTimeWaited > CFG.POLL_ALL_MAX_TIMEOUT) {
+              console.error('POLL_ALL_MAX_TIMEOUT reached');
+              reject('POLL_ALL_MAX_TIMEOUT reached');
+            } else {
+              // call recursively
+              pollAllAppsStarted(savedWindowList);
+            }
+          } else {
+            fulfill(currentWindowList);
+          }
+        });
+      }, CFG.POLL_ALL_APPS_STARTED_TIMEOUT);
+    }
+
+    // start once initially
+    pollAllAppsStarted(savedWindowList);
+  });
 }
 
 function isAllAppsStarted(savedWindowList, currentWindowList) {
@@ -176,19 +208,23 @@ function isAllAppsStarted(savedWindowList, currentWindowList) {
   return isAllStarted;
 }
 
-function readWindowStates(windowList, cb) {
-  const promises = [];
-  windowList.forEach((win) => {
-    promises.push(readWindowState(win));
-  });
+function readWindowStates(windowList) {
+  return new Promise((fulfill, reject) => {
+    const promises = [];
+    windowList.forEach((win) => {
+      promises.push(readWindowState(win));
+    });
 
-  Promise.all(promises).then((results) => {
-    cb(results);
+    Promise.all(promises)
+      .then((results) => {
+        fulfill(results);
+      })
+      .catch(reject);
   });
 }
 
 function readWindowState(win) {
-  return new Promise(function (fulfill, reject) {
+  return new Promise((fulfill, reject) => {
     exec(`xprop -id ${win.windowId} | grep "_NET_WM_STATE(ATOM)"`, (error, stdout, stderr) => {
       if (error || stderr) {
         console.error(error, stderr);
@@ -209,7 +245,7 @@ function readWindowState(win) {
   });
 }
 
-function readDesktopFilePaths(windowList, cb) {
+function readDesktopFilePaths(windowList) {
   const promises = [];
   windowList.forEach((win) => {
     if (isDesktopFile(win.executableFile)) {
@@ -217,13 +253,17 @@ function readDesktopFilePaths(windowList, cb) {
     }
   });
 
-  Promise.all(promises).then((results) => {
-    cb(results);
+  return new Promise((fulfill, reject) => {
+    Promise.all(promises)
+      .then((results) => {
+        fulfill(results);
+      })
+      .catch(reject);
   });
 }
 
 function readFilePath(win) {
-  return new Promise(function (fulfill, reject) {
+  return new Promise((fulfill, reject) => {
     exec('locate ' + win.executableFile, (error, stdout, stderr) => {
       if (error || stderr) {
         console.error(error, stderr);
@@ -240,12 +280,22 @@ function readFilePath(win) {
 
 // TODO check for how many instances there should be running of a program
 function startSessionPrograms(windowList, currentWindowList) {
+  const promises = [];
+
   windowList.forEach((win) => {
     const numberOfInstancesOfWin = getNumberOfInstancesToRun(win, windowList);
     if (!isProgramAlreadyRunning(win.executableFile, currentWindowList, numberOfInstancesOfWin, win.instancesStarted)) {
-      startProgram(win.executableFile, win.desktopFilePath);
+      promises.push(startProgram(win.executableFile, win.desktopFilePath));
       win.instancesStarted += 1;
     }
+  });
+
+  return new Promise((fulfill, reject) => {
+    Promise.all(promises)
+      .then((results) => {
+        fulfill(results);
+      })
+      .catch(reject);
   });
 }
 
@@ -266,16 +316,19 @@ function isProgramAlreadyRunning(executableFile, currentWindowList, numberOfInst
   return instancesRunning + instancesStarted >= numberOfInstancesToRun;
 }
 
-function getActiveWindowList(cb) {
+function getActiveWindowList() {
   const cmd = 'wmctrl -p -G -l -x';
 
-  exec(cmd, function (error, stdout, stderr) {
-    const data = transformWmctrlList(stdout);
-    if (error || stderr) {
-      console.error(error, stderr);
-    } else {
-      cb(data);
-    }
+  return new Promise((fulfill, reject) => {
+    exec(cmd, function (error, stdout, stderr) {
+      const data = transformWmctrlList(stdout);
+      if (error || stderr) {
+        console.error(error, stderr);
+        reject(error | stderr);
+      } else {
+        fulfill(data);
+      }
+    });
   });
 }
 
@@ -298,14 +351,16 @@ function startProgram(executableFile, desktopFilePath) {
     cmd = executableFile;
     // TODO split args if necessary
   }
-  spawn(cmd, args, {
-    stdio: 'ignore',
-    detached: true,
-  }, (error, stdout, stderr) => {
-    if (error || stderr) {
-      console.error(error, stderr);
-    }
-  }).unref();
+
+  return new Promise((fulfill) => {
+    spawn(cmd, args, {
+      stdio: 'ignore',
+      detached: true,
+    }).unref();
+
+    // currently we have no error handling as the process is started detached
+    fulfill();
+  });
 }
 
 function transformWmctrlList(stdout) {
@@ -361,7 +416,7 @@ function getMatchingWindows(win, currentWindowList) {
   return currentWindowList.filter((winFromCurrent) => win.executableFile === winFromCurrent.executableFile);
 }
 
-function restoreWindowPositions(savedWindowList, cb) {
+function restoreWindowPositions(savedWindowList) {
   const promises = [];
   savedWindowList.forEach((win) => {
     if (win.windowId) {
@@ -369,8 +424,12 @@ function restoreWindowPositions(savedWindowList, cb) {
     }
   });
 
-  Promise.all(promises).then((results) => {
-    cb(results);
+  return new Promise((fulfill, reject) => {
+    Promise.all(promises)
+      .then((results) => {
+        fulfill(results);
+      })
+      .catch(reject);
   });
 }
 
@@ -396,7 +455,7 @@ function restoreWindowPosition(win) {
     cmd = `${cmd} &&  ${baseCmd} -b add,${win.states.join(',')}`;
   }
 
-  return new Promise(function (fulfill, reject) {
+  return new Promise((fulfill, reject) => {
     exec(cmd, (error, stdout, stderr) => {
       if (error || stderr) {
         console.error(error, stderr);

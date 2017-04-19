@@ -1,6 +1,7 @@
 {
   "IS_USE_XDOTOOL": true,
   "POLL_ALL_APPS_STARTED_TIMEOUT": 2000,
+  "POLL_ALL_MAX_TIMEOUT": 30000,
   "EXECUTABLE_FILE_MAP": {
     "sun-awt-X11-XFramePeer.jetbrains-idea": "jetbrains-idea.desktop",
     "gnome-terminal-server.Gnome-terminal": "gnome-terminal"
