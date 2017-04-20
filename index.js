@@ -10,12 +10,16 @@ const DESKTOP_ENV = process.env.DESKTOP_SESSION;
 let db;
 let CFG;
 
+// init first
+init();
+
 module.exports = {
   savePositions,
   restoreSession,
+  getCfg: () => {
+    return CFG;
+  },
 };
-
-init();
 
 function init() {
   const mkdirSync = (dirPath) => {
@@ -39,18 +43,18 @@ function init() {
   const dataDir = getUserHome() + '/.lwsm';
   const sessionDataDir = dataDir + '/sessionData';
 
-  //try {
-  // if config is already in place
-  //CFG = JSON.parse(fs.readFileSync(dataDir + '/config.json', 'utf8'));
-  //} catch (e) {
-  // if there is no config yet load default cfg and create files and dirs
-  CFG = JSON.parse(fs.readFileSync(__dirname + '/config.json', 'utf8'));
-  mkdirSync(dataDir);
-  mkdirSync(sessionDataDir);
+  try {
+    // if config is already in place
+    CFG = JSON.parse(fs.readFileSync(dataDir + '/config.json', 'utf8'));
+  } catch (e) {
+    // if there is no config yet load default cfg and create files and dirs
+    CFG = JSON.parse(fs.readFileSync(__dirname + '/config.json', 'utf8'));
+    mkdirSync(dataDir);
+    mkdirSync(sessionDataDir);
 
-  // copy files
-  copySync(__dirname + '/config.json', dataDir + '/config.json');
-//}
+    // copy files
+    copySync(__dirname + '/config.json', dataDir + '/config.json');
+  }
 
 // create data store
   db = new Store(sessionDataDir);
