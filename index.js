@@ -74,7 +74,8 @@ function getUserHome() {
 
 function saveSession(sessionName, inputHandlers) {
   const sessionToHandle = sessionName || 'DEFAULT';
-  getActiveWindowList()
+
+  return getActiveWindowList()
     .then((windowList) => {
       return Promise.all([
         readAndSetWindowStates(windowList),
@@ -85,62 +86,88 @@ function saveSession(sessionName, inputHandlers) {
     .then((results) => {
       const windowList = results[0];
       const connectedDisplaysId = results[2];
-
-      // check if entry exists and update
-      db.get(sessionToHandle, (err, sessionData) => {
-        if (sessionData) {
-          sessionData[connectedDisplaysId] = windowList;
-          db.save(sessionToHandle, sessionData, () => {
-            console.log('SAVED SESSION: ' + sessionToHandle);
-          });
-        } else {
-          const newSession = {};
-          newSession[connectedDisplaysId] = windowList;
-          db.save(sessionToHandle, newSession, () => {
-            console.log('SAVED SESSION: ' + sessionToHandle);
-          });
-        }
-      });
+      return saveSessionForDisplayToDb(sessionToHandle, connectedDisplaysId, windowList);
     })
     .catch((err) => {
       console.error('An error occurred', err);
     });
 }
 
+function saveSessionForDisplayToDb(sessionToHandle, connectedDisplaysId, windowList) {
+  return new Promise((fulfill, reject) => {
+    // check if entry exists and update
+    db.get(sessionToHandle, (err, sessionData) => {
+      if (!sessionData || !Array.isArray(sessionData)) {
+        // create new array
+        sessionData = [];
+      }
+
+      const existingDisplayEntry = sessionData.find((entry) => entry.id === connectedDisplaysId);
+      if (existingDisplayEntry) {
+        existingDisplayEntry.windowList = windowList;
+      } else {
+        sessionData.push({
+          id: connectedDisplaysId,
+          windowList,
+        });
+      }
+
+      db.save(sessionToHandle, sessionData, (err) => {
+        if (err) {
+          reject(err);
+        } else {
+          console.log('SAVED SESSION: ' + sessionToHandle);
+          fulfill();
+        }
+      });
+    });
+  });
+}
+
 function restoreSession(sessionName) {
   const sessionToHandle = sessionName || 'DEFAULT';
 
-  db.get(sessionToHandle || 'DEFAULT', (err, sessionData) => {
-    let savedWindowList;
+  return new Promise((fulfill, reject) => {
+    db.get(sessionToHandle || 'DEFAULT', (err, sessionData) => {
+      if (err) {
+        reject(err);
+        return;
+      }
 
-    goToFirstWorkspace()
-      .then(getConnectedDisplaysId)
-      .then((connectedDisplaysId) => {
-        savedWindowList = sessionData[connectedDisplaysId];
+      let savedWindowList;
+      goToFirstWorkspace()
+        .then(getConnectedDisplaysId)
+        .then((connectedDisplaysId) => {
+          const displayEntry = sessionData.find((entry) => entry.id === connectedDisplaysId);
 
-        if (!savedWindowList) {
-          console.error(`no data for current display id '${connectedDisplaysId}' saved yet`);
-          return;
-        }
-        return getActiveWindowList();
-      })
-      .then((currentWindowList) => {
-        return startSessionPrograms(savedWindowList, currentWindowList);
-      })
-      .then(() => {
-        // gets current window list by itself and returns the updated variant
-        return waitForAllAppsToStart(savedWindowList)
-      })
-      .then((updatedCurrentWindowList) => {
-        updateWindowIds(savedWindowList, updatedCurrentWindowList);
-        return restoreWindowPositions(savedWindowList);
-      })
-      .then(() => {
-        console.log('RESTORED SESSION: ' + sessionToHandle);
-      })
-      .catch((err) => {
-        console.error('An error occurred', err);
-      });
+          if (displayEntry) {
+            savedWindowList = displayEntry.windowList;
+          } else {
+            console.error(`no data for current display id '${connectedDisplaysId}' saved yet`);
+            return;
+          }
+          return getActiveWindowList();
+        })
+        .then((currentWindowList) => {
+          return startSessionPrograms(savedWindowList, currentWindowList);
+        })
+        .then(() => {
+          // gets current window list by itself and returns the updated variant
+          return waitForAllAppsToStart(savedWindowList)
+        })
+        .then((updatedCurrentWindowList) => {
+          updateWindowIds(savedWindowList, updatedCurrentWindowList);
+          return restoreWindowPositions(savedWindowList);
+        })
+        .then(() => {
+          console.log('RESTORED SESSION: ' + sessionToHandle);
+        })
+        .catch((err) => {
+          console.error('An error occurred', err);
+          reject(err);
+        })
+        .then(fulfill);
+    });
   });
 }
 
