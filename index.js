@@ -19,6 +19,9 @@ module.exports = {
   getCfg: () => {
     return CFG;
   },
+  getDb: () => {
+    return db;
+  }
 };
 
 function init() {
@@ -56,8 +59,12 @@ function init() {
     copySync(__dirname + '/config.json', dataDir + '/config.json');
   }
 
-// create data store
+  // create data store
   db = new Store(sessionDataDir);
+
+  // also make data dirs accessible to the outside
+  CFG.DATA_DIR = dataDir;
+  CFG.SESSION_DATA_DIR = sessionDataDir;
 }
 
 function getUserHome() {
