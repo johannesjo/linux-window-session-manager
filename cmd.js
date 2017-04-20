@@ -16,6 +16,8 @@ const savePrompts = {
           } else if (displayEntries && intVal > 0 && displayEntries[intVal - 1]) {
             fulfill(displayEntries[intVal - 1]);
             console.log(`Saving ${displayEntries[intVal - 1]}\n`);
+          } else if (displayEntries && displayEntries[0]) {
+            fulfill(displayEntries[0]);
           } else {
             reject();
           }
