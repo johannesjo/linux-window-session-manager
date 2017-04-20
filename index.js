@@ -14,7 +14,7 @@ let CFG;
 init();
 
 module.exports = {
-  savePositions,
+  saveSession,
   restoreSession,
   getCfg: () => {
     return CFG;
@@ -71,7 +71,7 @@ function getUserHome() {
   return process.env[(process.platform === 'win32') ? 'USERPROFILE' : 'HOME'];
 }
 
-function savePositions(sessionName, inputHandlers) {
+function saveSession(sessionName, inputHandlers) {
   const sessionToHandle = sessionName || 'DEFAULT';
   getActiveWindowList()
     .then((windowList) => {

@@ -48,7 +48,7 @@ const savePrompts = {
 };
 
 if (process.argv[2] === 'save') {
-  base.savePositions(process.argv[3], savePrompts);
+  base.saveSession(process.argv[3], savePrompts);
 } else if (process.argv[2] === 'restore') {
   base.restoreSession(process.argv[3]);
 } else {
