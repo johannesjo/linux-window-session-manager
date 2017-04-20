@@ -16,6 +16,7 @@ init();
 module.exports = {
   saveSession,
   restoreSession,
+  getConnectedDisplaysId,
   getCfg: () => {
     return CFG;
   },
