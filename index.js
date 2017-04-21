@@ -80,15 +80,27 @@ function saveSession(sessionName, inputHandlers) {
   return getActiveWindowList()
     .then((windowList) => {
       return Promise.all([
-        readAndSetAdditionalMetaData(windowList),
-        guessAndSetDesktopFilePaths(windowList, inputHandlers.desktopFilePath),
-        getConnectedDisplaysId(),
+        readAndSetAdditionalMetaData(windowList)
+          .catch((err) => {
+            console.error('An error occurred during readAndSetAdditionalMetaData', err);
+          }),
+        guessAndSetDesktopFilePaths(windowList, inputHandlers.desktopFilePath)
+          .catch((err) => {
+            console.error('An error occurred during guessAndSetDesktopFilePaths', err);
+          }),
+        getConnectedDisplaysId()
+          .catch((err) => {
+            console.error('An error occurred during getConnectedDisplaysId', err);
+          }),
       ]);
     })
     .then((results) => {
       const windowList = results[0];
       const connectedDisplaysId = results[2];
-      return saveSessionForDisplayToDb(sessionToHandle, connectedDisplaysId, windowList);
+      return saveSessionForDisplayToDb(sessionToHandle, connectedDisplaysId, windowList)
+        .catch((err) => {
+          console.error('An error occurred during saveSessionForDisplayToDb', err);
+        });
     })
     .catch((err) => {
       console.error('An error occurred', err);
@@ -301,7 +313,6 @@ function readAndSetAdditionalMetaDataForWin(win) {
           // remove property name and "="
           words.splice(0, 2);
           const value = words.join(' ');
-
           const propertyNameFromMap = CFG.WM_META_MAP[propertyName];
           if (propertyNameFromMap) {
             // special handle number types
@@ -363,7 +374,7 @@ function guessFilePath(win, inputHandler) {
 
     if (isDesktopFile(win.executableFile)) {
       exec('locate ' + win.executableFile, (error, stdout, stderr) => {
-        callInputHandler(error || stderr, stdout);
+        callInputHandler((error || stderr), stdout);
       });
     } else {
       callInputHandler(true, win.executableFile);

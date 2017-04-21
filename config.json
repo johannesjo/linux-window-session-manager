@@ -12,7 +12,8 @@
     "N/A",
     "tilda.Tilda",
     "Popup.desktop",
-    "update-manager.Update-manager"
+    "update-manager.Update-manager",
+    "desktop_window.Nautilus"
   ],
   "WM_STATES_MAP": {
     "_NET_WM_STATE_MAXIMIZED_VERT": "maximized_vert",
