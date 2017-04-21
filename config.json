@@ -10,9 +10,9 @@
   },
   "WM_CLASS_EXCLUSIONS": [
     "N/A",
-    "desktop_window.Nautilus",
     "tilda.Tilda",
-    "Popup.desktop"
+    "Popup.desktop",
+    "update-manager.Update-manager"
   ],
   "WM_STATES_MAP": {
     "_NET_WM_STATE_MAXIMIZED_VERT": "maximized_vert",
@@ -20,5 +20,15 @@
     "_NET_WM_STATE_FULLSCREEN": "fullscreen",
     "_NET_WM_STATE_ABOVE": "above",
     "_NET_WM_STATE_BELOW": "below"
-  }
+  },
+  "WM_META_MAP": {
+    "_NET_WM_DESKTOP(CARDINAL)": "wmCurrentDesktopNr",
+    "WM_NAME(UTF8_STRING)": "wmTitle",
+    "_NET_WM_PID(CARDINAL)": "wmPid",
+    "_NET_WM_WINDOW_TYPE(ATOM)": "wmType"
+  },
+  "WM_META_MAP_NUMBER_TYPES": [
+    "_NET_WM_PID(CARDINAL)",
+    "_NET_WM_DESKTOP(CARDINAL)"
+  ]
 }

@@ -17,6 +17,8 @@ module.exports = {
   saveSession,
   restoreSession,
   getConnectedDisplaysId,
+  resetCfg: () => {
+  },
   getCfg: () => {
     return CFG;
   },
@@ -78,7 +80,7 @@ function saveSession(sessionName, inputHandlers) {
   return getActiveWindowList()
     .then((windowList) => {
       return Promise.all([
-        readAndSetWindowStates(windowList),
+        readAndSetAdditionalMetaData(windowList),
         guessAndSetDesktopFilePaths(windowList, inputHandlers.desktopFilePath),
         getConnectedDisplaysId(),
       ]);
@@ -268,11 +270,11 @@ function isAllAppsStarted(savedWindowList, currentWindowList) {
   return isAllStarted;
 }
 
-function readAndSetWindowStates(windowList) {
+function readAndSetAdditionalMetaData(windowList) {
   return new Promise((fulfill, reject) => {
     const promises = [];
     windowList.forEach((win) => {
-      promises.push(readAndSetWindowState(win));
+      promises.push(readAndSetAdditionalMetaDataForWin(win));
     });
 
     Promise.all(promises)
@@ -283,23 +285,44 @@ function readAndSetWindowStates(windowList) {
   });
 }
 
-function readAndSetWindowState(win) {
+function readAndSetAdditionalMetaDataForWin(win) {
   return new Promise((fulfill, reject) => {
-    exec(`xprop -id ${win.windowId} | grep "_NET_WM_STATE(ATOM)"`, (error, stdout, stderr) => {
+    exec(`xprop -id ${win.windowId}`, (error, stdout, stderr) => {
       if (error || stderr) {
         console.error(error, stderr);
         reject(error || stderr);
       } else {
-        const stringStates = stdout.replace('_NET_WM_STATE(ATOM) = ', '')
-          .replace('\n', '');
-        const states = stringStates.split(' = ');
-        win.states = [];
-        states.forEach((state) => {
-          if (state !== '' && CFG.WM_STATES_MAP[state]) {
-            win.states.push(CFG.WM_STATES_MAP[state]);
+        const lines = stdout.split('\n');
+
+        lines.forEach((line) => {
+          const words = line.split(' ');
+          const propertyName = words[0];
+
+          // remove property name and "="
+          words.splice(0, 2);
+          const value = words.join(' ');
+
+          const propertyNameFromMap = CFG.WM_META_MAP[propertyName];
+          if (propertyNameFromMap) {
+            // special handle number types
+            if (CFG.WM_META_MAP_NUMBER_TYPES.indexOf(propertyName) > -1) {
+              win[propertyNameFromMap] = parseInt(value, 10);
+            } else {
+              win[propertyNameFromMap] = value;
+            }
+          }
+          // parse states
+          else if (propertyName === '_NET_WM_STATE(ATOM)') {
+            const states = value.split(', ');
+            win.states = [];
+            states.forEach((state) => {
+              if (state !== '' && CFG.WM_STATES_MAP[state]) {
+                win.states.push(CFG.WM_STATES_MAP[state]);
+              }
+            });
           }
         });
-        fulfill(win.states);
+        fulfill(win);
       }
     });
   });
@@ -449,6 +472,7 @@ function transformWmctrlList(stdout) {
         width: parseInt(fields[6], 10),
         height: parseInt(fields[7], 10),
         wmClassName: fields[8],
+        simpleName: parseSimpleWindowName(fields[8]),
         executableFile: parseExecutableFileFromWmClassName(fields[8]),
       });
     }
@@ -463,6 +487,15 @@ function parseExecutableFileFromWmClassName(wmClassName) {
   } else {
     const splitValues = wmClassName.split('.');
     return splitValues[0] + '.desktop';
+  }
+}
+
+function parseSimpleWindowName(wmClassName) {
+  const splitValues = wmClassName.split('.');
+  if (splitValues[1]) {
+    return splitValues[1];
+  } else {
+    return wmClassName;
   }
 }
 
