@@ -97,16 +97,22 @@ function saveSessionForDisplayToDb(sessionToHandle, connectedDisplaysId, windowL
   return new Promise((fulfill, reject) => {
     // check if entry exists and update
     db.get(sessionToHandle, (err, sessionData) => {
-      if (!sessionData || !Array.isArray(sessionData)) {
+      if (!sessionData) {
+        // create new object
+        sessionData = {
+          name: sessionToHandle,
+        };
+      }
+      if (!sessionData.displaysCombinations || !Array.isArray(sessionData.displaysCombinations)) {
         // create new array
-        sessionData = [];
+        sessionData.displaysCombinations = [];
       }
 
-      const existingDisplayEntry = sessionData.find((entry) => entry.id === connectedDisplaysId);
+      const existingDisplayEntry = sessionData.displaysCombinations.find((entry) => entry.id === connectedDisplaysId);
       if (existingDisplayEntry) {
         existingDisplayEntry.windowList = windowList;
       } else {
-        sessionData.push({
+        sessionData.displaysCombinations.push({
           id: connectedDisplaysId,
           windowList,
         });
@@ -138,7 +144,12 @@ function restoreSession(sessionName) {
       goToFirstWorkspace()
         .then(getConnectedDisplaysId)
         .then((connectedDisplaysId) => {
-          const displayEntry = sessionData.find((entry) => entry.id === connectedDisplaysId);
+          if (!sessionData.displaysCombinations) {
+            console.error(`no display combinations saved yet`);
+            return;
+          }
+
+          const displayEntry = sessionData.displaysCombinations.find((entry) => entry.id === connectedDisplaysId);
 
           if (displayEntry) {
             savedWindowList = displayEntry.windowList;
