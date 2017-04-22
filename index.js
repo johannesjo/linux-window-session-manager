@@ -451,7 +451,7 @@ function getActiveWindowList() {
 }
 
 function isDesktopFile(executableFile) {
-  return executableFile.match(/desktop$/);
+  return executableFile && executableFile.match(/desktop$/);
 }
 
 function isExcludedWmClassName(wmClassName) {
