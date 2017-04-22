@@ -523,12 +523,12 @@ function updateWindowIds(savedWindowList, currentWindowList) {
 }
 
 function getMatchingWindowId(win, currentWindowList) {
-  const currentWindow = currentWindowList.find((winFromCurrent) => win.executableFile === winFromCurrent.executableFile);
+  const currentWindow = currentWindowList.find((winFromCurrent) => win.wmClassName === winFromCurrent.wmClassName);
   return currentWindow && currentWindow.windowId;
 }
 
 function getMatchingWindows(win, currentWindowList) {
-  return currentWindowList.filter((winFromCurrent) => win.executableFile === winFromCurrent.executableFile);
+  return currentWindowList.filter((winFromCurrent) => win.wmClassName === winFromCurrent.wmClassName);
 }
 
 function restoreWindowPositions(savedWindowList) {
