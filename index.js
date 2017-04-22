@@ -75,6 +75,10 @@ function getUserHome() {
   return process.env[(process.platform === 'win32') ? 'USERPROFILE' : 'HOME'];
 }
 
+function catchGenericErr(err) {
+  console.error('Generic Error', err);
+}
+
 function saveSession(sessionName, inputHandlers) {
   const sessionToHandle = sessionName || 'DEFAULT';
 
@@ -145,7 +149,7 @@ function saveSessionForDisplayToDb(sessionToHandle, connectedDisplaysId, windowL
   });
 }
 
-function restoreSession(sessionName) {
+function restoreSession(sessionName, isCloseAllOpenWindows) {
   const sessionToHandle = sessionName || 'DEFAULT';
 
   return new Promise((fulfill, reject) => {
@@ -156,7 +160,9 @@ function restoreSession(sessionName) {
       }
 
       let savedWindowList;
-      goToFirstWorkspace()
+
+      closeAllWindowsIfSet(isCloseAllOpenWindows)
+        .then(goToFirstWorkspace)
         .then(getConnectedDisplaysId)
         .then((connectedDisplaysId) => {
           if (!sessionData.displaysCombinations) {
@@ -210,6 +216,39 @@ function removeSession(sessionName) {
   });
 }
 
+function closeAllWindowsIfSet(isCloseAll) {
+  return new Promise((fulfill, reject) => {
+    if (isCloseAll) {
+      getActiveWindowList()
+        .then((currentWindowList) => {
+          currentWindowList.forEach((win) => {
+            closeWindow(win.windowId);
+          });
+
+          waitForAllAppsToClose()
+            .then(fulfill)
+            .catch(reject);
+        });
+    } else {
+      fulfill();
+    }
+  }).catch(catchGenericErr);
+}
+
+function closeWindow(windowId) {
+  const cmd = 'wmctrl -ic ' + windowId;
+  return new Promise((fulfill, reject) => {
+    exec(cmd, (error, stdout, stderr) => {
+      if (error || stderr) {
+        console.error(error, stderr);
+        reject(error || stderr);
+      } else {
+        fulfill();
+      }
+    });
+  }).catch(catchGenericErr);
+}
+
 function goToFirstWorkspace() {
   const cmd = 'xdotool set_desktop_viewport 0 0';
   return new Promise((fulfill, reject) => {
@@ -257,6 +296,35 @@ function parseConnectedDisplaysId(stdout) {
     // cut off last semicolon
     return idString.substring(0, idString.length - 1);
   }
+}
+
+function waitForAllAppsToClose() {
+  let totalTimeWaited = 0;
+  return new Promise((fulfill, reject) => {
+    function pollAllAppsClosed() {
+      setTimeout(() => {
+        getActiveWindowList()
+          .then((currentWindowList) => {
+            totalTimeWaited += CFG.POLL_ALL_APPS_STARTED_TIMEOUT;
+            console.log(currentWindowList.length);
+            if (currentWindowList.length !== 0) {
+              if (totalTimeWaited > CFG.POLL_ALL_MAX_TIMEOUT) {
+                console.error('POLL_ALL_MAX_TIMEOUT reached');
+                reject('POLL_ALL_MAX_TIMEOUT reached');
+              } else {
+                // call recursively
+                pollAllAppsClosed();
+              }
+            } else {
+              fulfill(currentWindowList);
+            }
+          });
+      }, CFG.POLL_ALL_APPS_STARTED_TIMEOUT);
+    }
+
+    // start once initially
+    pollAllAppsClosed();
+  });
 }
 
 function waitForAllAppsToStart(savedWindowList) {

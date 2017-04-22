@@ -36,19 +36,26 @@ const savePrompts = {
   }
 };
 
-if (process.argv[2] === 'save') {
-  base.saveSession(process.argv[3], savePrompts);
-} else if (process.argv[2] === 'restore') {
-  base.restoreSession(process.argv[3]);
-} else if (process.argv[2] === 'remove') {
-  base.removeSession(process.argv[3]);
+const isCloseAllWinBefore = process.argv.indexOf('--closeAllOpenWindows') > -1;
+const action = process.argv[2];
+let sessionName;
+if (process.argv[3] && !process.argv[3].match(/^--/)) {
+  sessionName = process.argv[3];
+}
+
+if (action === 'save') {
+  base.saveSession(sessionName, savePrompts);
+} else if (action === 'restore') {
+  base.restoreSession(sessionName, isCloseAllWinBefore);
+} else if (action === 'remove') {
+  base.removeSession(sessionName);
 } else {
   console.log(`
   Usage:\n
   Saving your current windows:
-  lwsm save [OPTIONAL_SESSION_ID]
+  lwsm save [OPTIONAL_SESSION_ID] 
   
   Restoring a session:
-  lwsm restore [OPTIONAL_SESSION_ID]
+  lwsm restore [OPTIONAL_SESSION_ID] [--closeAllOpenWindows]
   `);
 }
