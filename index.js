@@ -5,6 +5,7 @@ const spawn = require('child_process').spawn;
 const Store = require('jfs');
 const fs = require('fs');
 const waterfall = require('promise-waterfall');
+const parseCmdToSpawn = require('./parseCmdToSpawn');
 const DESKTOP_ENV = process.env.DESKTOP_SESSION;
 
 let db;
@@ -534,9 +535,9 @@ function startProgram(executableFile, desktopFilePath) {
     args.push('/^Exec=/ {sub("^Exec=", ""); gsub(" ?%[cDdFfikmNnUuv]", ""); exit system($0)}');
     args.push(desktopFilePath);
   } else {
-    cmd = executableFile;
-    // TODO split args if necessary
+    [cmd, args] = parseCmdToSpawn(executableFile);
   }
+  console.log(cmd, args);
 
   return new Promise((fulfill) => {
     spawn(cmd, args, {
