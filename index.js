@@ -15,6 +15,7 @@ init();
 
 module.exports = {
   saveSession,
+  removeSession,
   restoreSession,
   getConnectedDisplaysId,
   resetCfg: () => {
@@ -192,6 +193,19 @@ function restoreSession(sessionName) {
           reject(err);
         })
         .then(fulfill);
+    });
+  });
+}
+
+function removeSession(sessionName) {
+  return new Promise((fulfill, reject) => {
+    fs.unlink(CFG.SESSION_DATA_DIR + '/' + sessionName + '.json', (error) => {
+      if (error) {
+        console.error(error);
+        reject(error);
+      } else {
+        fulfill();
+      }
     });
   });
 }

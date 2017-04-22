@@ -40,6 +40,8 @@ if (process.argv[2] === 'save') {
   base.saveSession(process.argv[3], savePrompts);
 } else if (process.argv[2] === 'restore') {
   base.restoreSession(process.argv[3]);
+} else if (process.argv[2] === 'remove') {
+  base.removeSession(process.argv[3]);
 } else {
   console.log(`
   Usage:\n
