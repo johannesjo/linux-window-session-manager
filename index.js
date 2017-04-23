@@ -1,13 +1,10 @@
 'use strict';
 
-const exec = require('child_process').exec;
-const spawn = require('child_process').spawn;
 const Store = require('jfs');
 const fs = require('fs');
 const waterfall = require('promise-waterfall');
-const parseCmdToSpawn = require('./parseCmdToSpawn');
 const DESKTOP_ENV = process.env.DESKTOP_SESSION;
-let mw;
+let metaW;
 
 let db;
 let CFG;
@@ -19,7 +16,7 @@ module.exports = {
   saveSession,
   removeSession,
   restoreSession,
-  getConnectedDisplaysId,
+  getConnectedDisplaysId: metaW.getConnectedDisplaysId,
   resetCfg: () => {
   },
   getCfg: () => {
@@ -73,7 +70,7 @@ function init() {
   CFG.SESSION_DATA_DIR = sessionDataDir;
 
   // setup meta wrapper
-  mw = require('./metaWrapper')(CFG);
+  metaW = require('./metaWrapper')(CFG);
 }
 
 function getUserHome() {
@@ -87,30 +84,18 @@ function catchGenericErr(err) {
 function saveSession(sessionName, inputHandlers) {
   const sessionToHandle = sessionName || 'DEFAULT';
 
-  return mw.getActiveWindowList()
+  return metaW.getActiveWindowList()
     .then((windowList) => {
       return Promise.all([
-        readAndSetAdditionalMetaData(windowList)
-          .catch((err) => {
-            console.error('An error occurred during readAndSetAdditionalMetaData', err);
-          }),
-        guessAndSetDesktopFilePaths(windowList, inputHandlers.desktopFilePath)
-          .catch((err) => {
-            console.error('An error occurred during guessAndSetDesktopFilePaths', err);
-          }),
-        getConnectedDisplaysId()
-          .catch((err) => {
-            console.error('An error occurred during getConnectedDisplaysId', err);
-          }),
+        readAndSetAdditionalMetaData(windowList),
+        guessAndSetDesktopFilePaths(windowList, inputHandlers.desktopFilePath),
+        metaW.getConnectedDisplaysId(),
       ]);
     })
     .then((results) => {
       const windowList = results[0];
       const connectedDisplaysId = results[2];
-      return saveSessionForDisplayToDb(sessionToHandle, connectedDisplaysId, windowList)
-        .catch((err) => {
-          console.error('An error occurred during saveSessionForDisplayToDb', err);
-        });
+      return saveSessionForDisplayToDb(sessionToHandle, connectedDisplaysId, windowList);
     })
     .catch((err) => {
       console.error('An error occurred', err);
@@ -167,8 +152,8 @@ function restoreSession(sessionName, isCloseAllOpenWindows) {
       let savedWindowList;
 
       closeAllWindowsIfSet(isCloseAllOpenWindows)
-        .then(goToFirstWorkspace)
-        .then(getConnectedDisplaysId)
+        .then(metaW.goToFirstWorkspace)
+        .then(metaW.getConnectedDisplaysId)
         .then((connectedDisplaysId) => {
           if (!sessionData.displaysCombinations) {
             console.error(`no display combinations saved yet`);
@@ -183,7 +168,7 @@ function restoreSession(sessionName, isCloseAllOpenWindows) {
             console.error(`no data for current display id '${connectedDisplaysId}' saved yet`);
             return;
           }
-          return mw.getActiveWindowList();
+          return metaW.getActiveWindowList();
         })
         .then((currentWindowList) => {
           return startSessionPrograms(savedWindowList, currentWindowList);
@@ -205,7 +190,7 @@ function restoreSession(sessionName, isCloseAllOpenWindows) {
         })
         .then(fulfill);
     });
-  });
+  }).catch(catchGenericErr);
 }
 
 function removeSession(sessionName) {
@@ -218,16 +203,16 @@ function removeSession(sessionName) {
         fulfill();
       }
     });
-  });
+  }).catch(catchGenericErr);
 }
 
 function closeAllWindowsIfSet(isCloseAll) {
   return new Promise((fulfill, reject) => {
     if (isCloseAll) {
-      mw.getActiveWindowList()
+      metaW.getActiveWindowList()
         .then((currentWindowList) => {
           currentWindowList.forEach((win) => {
-            mw.closeWindow(win.windowId);
+            metaW.closeWindow(win.windowId);
           });
 
           waitForAllAppsToClose()
@@ -240,61 +225,12 @@ function closeAllWindowsIfSet(isCloseAll) {
   }).catch(catchGenericErr);
 }
 
-function goToFirstWorkspace() {
-  const cmd = 'xdotool set_desktop_viewport 0 0';
-  return new Promise((fulfill, reject) => {
-    exec(cmd, (error, stdout, stderr) => {
-      if (error || stderr) {
-        console.error(error, stderr);
-        reject(error || stderr);
-      } else {
-        fulfill();
-      }
-    });
-  });
-}
-
-function getConnectedDisplaysId() {
-  const cmd = `xrandr --query | grep '\\bconnected\\b'`;
-  return new Promise((fulfill, reject) => {
-    exec(cmd, (error, stdout, stderr) => {
-      if (error || stderr) {
-        console.error(error, stderr);
-        reject(error || stderr);
-      } else {
-        const connectedDisplaysId = parseConnectedDisplaysId(stdout);
-        fulfill(connectedDisplaysId);
-      }
-    });
-  });
-}
-
-function parseConnectedDisplaysId(stdout) {
-  let idString = '';
-  const RESOLUTION_REG_EX = /[0-9]{3,5}x[0-9]{3,5}/;
-  const lines = stdout.split('\n');
-  lines.forEach((line) => {
-    if (line !== '') {
-      const resolution = RESOLUTION_REG_EX.exec(line);
-      // only do this if we have a resolution as that means that the display is active
-      if (resolution) {
-        idString += resolution + ';';
-      }
-    }
-  });
-
-  if (idString.length) {
-    // cut off last semicolon
-    return idString.substring(0, idString.length - 1);
-  }
-}
-
 function waitForAllAppsToClose() {
   let totalTimeWaited = 0;
   return new Promise((fulfill, reject) => {
     function pollAllAppsClosed() {
       setTimeout(() => {
-        mw.getActiveWindowList()
+        metaW.getActiveWindowList()
           .then((currentWindowList) => {
             totalTimeWaited += CFG.POLL_ALL_APPS_STARTED_TIMEOUT;
             console.log(currentWindowList.length);
@@ -315,7 +251,7 @@ function waitForAllAppsToClose() {
 
     // start once initially
     pollAllAppsClosed();
-  });
+  }).catch(catchGenericErr);
 }
 
 function waitForAllAppsToStart(savedWindowList) {
@@ -323,7 +259,7 @@ function waitForAllAppsToStart(savedWindowList) {
   return new Promise((fulfill, reject) => {
     function pollAllAppsStarted(savedWindowList) {
       setTimeout(() => {
-        mw.getActiveWindowList().then((currentWindowList) => {
+        metaW.getActiveWindowList().then((currentWindowList) => {
           totalTimeWaited += CFG.POLL_ALL_APPS_STARTED_TIMEOUT;
           if (!isAllAppsStarted(savedWindowList, currentWindowList)) {
             if (totalTimeWaited > CFG.POLL_ALL_MAX_TIMEOUT) {
@@ -342,7 +278,7 @@ function waitForAllAppsToStart(savedWindowList) {
 
     // start once initially
     pollAllAppsStarted(savedWindowList);
-  });
+  }).catch(catchGenericErr);
 }
 
 function isAllAppsStarted(savedWindowList, currentWindowList) {
@@ -359,7 +295,7 @@ function readAndSetAdditionalMetaData(windowList) {
   return new Promise((fulfill, reject) => {
     const promises = [];
     windowList.forEach((win) => {
-      promises.push(readAndSetAdditionalMetaDataForWin(win));
+      promises.push(metaW.readAndSetAdditionalMetaDataForWin(win));
     });
 
     Promise.all(promises)
@@ -367,49 +303,7 @@ function readAndSetAdditionalMetaData(windowList) {
         fulfill(windowList);
       })
       .catch(reject);
-  });
-}
-
-function readAndSetAdditionalMetaDataForWin(win) {
-  return new Promise((fulfill, reject) => {
-    exec(`xprop -id ${win.windowId}`, (error, stdout, stderr) => {
-      if (error || stderr) {
-        console.error(error, stderr);
-        reject(error || stderr);
-      } else {
-        const lines = stdout.split('\n');
-
-        lines.forEach((line) => {
-          const words = line.split(' ');
-          const propertyName = words[0];
-
-          // remove property name and "="
-          words.splice(0, 2);
-          const value = words.join(' ');
-          const propertyNameFromMap = CFG.WM_META_MAP[propertyName];
-          if (propertyNameFromMap) {
-            // special handle number types
-            if (CFG.WM_META_MAP_NUMBER_TYPES.indexOf(propertyName) > -1) {
-              win[propertyNameFromMap] = parseInt(value, 10);
-            } else {
-              win[propertyNameFromMap] = value;
-            }
-          }
-          // parse states
-          else if (propertyName === '_NET_WM_STATE(ATOM)') {
-            const states = value.split(', ');
-            win.states = [];
-            states.forEach((state) => {
-              if (state !== '' && CFG.WM_STATES_MAP[state]) {
-                win.states.push(CFG.WM_STATES_MAP[state]);
-              }
-            });
-          }
-        });
-        fulfill(win);
-      }
-    });
-  });
+  }).catch(catchGenericErr);
 }
 
 function guessAndSetDesktopFilePaths(windowList, inputHandler) {
@@ -426,7 +320,7 @@ function guessAndSetDesktopFilePaths(windowList, inputHandler) {
         fulfill(windowList);
       })
       .catch(reject);
-  });
+  }).catch(catchGenericErr);
 }
 
 function guessFilePath(win, inputHandler) {
@@ -446,13 +340,15 @@ function guessFilePath(win, inputHandler) {
     }
 
     if (isDesktopFile(win.executableFile)) {
-      exec('locate ' + win.executableFile, (error, stdout, stderr) => {
-        callInputHandler((error || stderr), stdout);
-      });
+      metaW.locate(win.executableFile)
+        .then((stdout) => {
+          callInputHandler(null, stdout)
+        })
+        .catch(callInputHandler);
     } else {
       callInputHandler(true, win.executableFile);
     }
-  });
+  }).catch(catchGenericErr);
 }
 
 // TODO check for how many instances there should be running of a program
@@ -462,7 +358,7 @@ function startSessionPrograms(windowList, currentWindowList) {
   windowList.forEach((win) => {
     const numberOfInstancesOfWin = getNumberOfInstancesToRun(win, windowList);
     if (!isProgramAlreadyRunning(win.wmClassName, currentWindowList, numberOfInstancesOfWin, win.instancesStarted)) {
-      promises.push(startProgram(win.executableFile, win.desktopFilePath));
+      promises.push(metaW.startProgram(win.executableFile, win.desktopFilePath));
       win.instancesStarted += 1;
     }
   });
@@ -473,7 +369,7 @@ function startSessionPrograms(windowList, currentWindowList) {
         fulfill(results);
       })
       .catch(reject);
-  });
+  }).catch(catchGenericErr);
 }
 
 function getNumberOfInstancesToRun(windowToMatch, windowList) {
@@ -495,28 +391,6 @@ function isProgramAlreadyRunning(wmClassName, currentWindowList, numberOfInstanc
 
 function isDesktopFile(executableFile) {
   return executableFile && executableFile.match(/desktop$/);
-}
-
-function startProgram(executableFile, desktopFilePath) {
-  let cmd;
-  let args = [];
-  if (desktopFilePath) {
-    cmd = `awk`;
-    args.push('/^Exec=/ {sub("^Exec=", ""); gsub(" ?%[cDdFfikmNnUuv]", ""); exit system($0)}');
-    args.push(desktopFilePath);
-  } else {
-    [cmd, args] = parseCmdToSpawn(executableFile);
-  }
-
-  return new Promise((fulfill) => {
-    spawn(cmd, args, {
-      stdio: 'ignore',
-      detached: true,
-    }).unref();
-
-    // currently we have no error handling as the process is started detached
-    fulfill();
-  });
 }
 
 function updateWindowIds(savedWindowList, currentWindowList) {
@@ -544,7 +418,7 @@ function restoreWindowPositions(savedWindowList) {
   const promises = [];
   savedWindowList.forEach((win) => {
     if (win.windowId) {
-      promises.push(mw.restoreWindowPosition(win));
+      promises.push(metaW.restoreWindowPosition(win));
     }
   });
 
@@ -554,8 +428,5 @@ function restoreWindowPositions(savedWindowList) {
         fulfill(results);
       })
       .catch(reject);
-  });
+  }).catch(catchGenericErr);
 }
-
-
-
