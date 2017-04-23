@@ -7,6 +7,7 @@ const fs = require('fs');
 const waterfall = require('promise-waterfall');
 const parseCmdToSpawn = require('./parseCmdToSpawn');
 const DESKTOP_ENV = process.env.DESKTOP_SESSION;
+let mw;
 
 let db;
 let CFG;
@@ -70,6 +71,9 @@ function init() {
   // also make data dirs accessible to the outside
   CFG.DATA_DIR = dataDir;
   CFG.SESSION_DATA_DIR = sessionDataDir;
+
+  // setup meta wrapper
+  mw = require('./metaWrapper')(CFG);
 }
 
 function getUserHome() {
@@ -83,7 +87,7 @@ function catchGenericErr(err) {
 function saveSession(sessionName, inputHandlers) {
   const sessionToHandle = sessionName || 'DEFAULT';
 
-  return getActiveWindowList()
+  return mw.getActiveWindowList()
     .then((windowList) => {
       return Promise.all([
         readAndSetAdditionalMetaData(windowList)
@@ -179,7 +183,7 @@ function restoreSession(sessionName, isCloseAllOpenWindows) {
             console.error(`no data for current display id '${connectedDisplaysId}' saved yet`);
             return;
           }
-          return getActiveWindowList();
+          return mw.getActiveWindowList();
         })
         .then((currentWindowList) => {
           return startSessionPrograms(savedWindowList, currentWindowList);
@@ -220,10 +224,10 @@ function removeSession(sessionName) {
 function closeAllWindowsIfSet(isCloseAll) {
   return new Promise((fulfill, reject) => {
     if (isCloseAll) {
-      getActiveWindowList()
+      mw.getActiveWindowList()
         .then((currentWindowList) => {
           currentWindowList.forEach((win) => {
-            closeWindow(win.windowId);
+            mw.closeWindow(win.windowId);
           });
 
           waitForAllAppsToClose()
@@ -233,20 +237,6 @@ function closeAllWindowsIfSet(isCloseAll) {
     } else {
       fulfill();
     }
-  }).catch(catchGenericErr);
-}
-
-function closeWindow(windowId) {
-  const cmd = 'wmctrl -ic ' + windowId;
-  return new Promise((fulfill, reject) => {
-    exec(cmd, (error, stdout, stderr) => {
-      if (error || stderr) {
-        console.error(error, stderr);
-        reject(error || stderr);
-      } else {
-        fulfill();
-      }
-    });
   }).catch(catchGenericErr);
 }
 
@@ -304,7 +294,7 @@ function waitForAllAppsToClose() {
   return new Promise((fulfill, reject) => {
     function pollAllAppsClosed() {
       setTimeout(() => {
-        getActiveWindowList()
+        mw.getActiveWindowList()
           .then((currentWindowList) => {
             totalTimeWaited += CFG.POLL_ALL_APPS_STARTED_TIMEOUT;
             console.log(currentWindowList.length);
@@ -333,7 +323,7 @@ function waitForAllAppsToStart(savedWindowList) {
   return new Promise((fulfill, reject) => {
     function pollAllAppsStarted(savedWindowList) {
       setTimeout(() => {
-        getActiveWindowList().then((currentWindowList) => {
+        mw.getActiveWindowList().then((currentWindowList) => {
           totalTimeWaited += CFG.POLL_ALL_APPS_STARTED_TIMEOUT;
           if (!isAllAppsStarted(savedWindowList, currentWindowList)) {
             if (totalTimeWaited > CFG.POLL_ALL_MAX_TIMEOUT) {
@@ -503,28 +493,8 @@ function isProgramAlreadyRunning(wmClassName, currentWindowList, numberOfInstanc
   return instancesRunning + instancesStarted >= numberOfInstancesToRun;
 }
 
-function getActiveWindowList() {
-  const cmd = 'wmctrl -p -G -l -x';
-
-  return new Promise((fulfill, reject) => {
-    exec(cmd, function (error, stdout, stderr) {
-      const windowList = transformWmctrlList(stdout);
-      if (error || stderr) {
-        console.error(error, stderr);
-        reject(error | stderr);
-      } else {
-        fulfill(windowList);
-      }
-    });
-  });
-}
-
 function isDesktopFile(executableFile) {
   return executableFile && executableFile.match(/desktop$/);
-}
-
-function isExcludedWmClassName(wmClassName) {
-  return CFG.WM_CLASS_EXCLUSIONS.indexOf(wmClassName) > -1;
 }
 
 function startProgram(executableFile, desktopFilePath) {
@@ -547,49 +517,6 @@ function startProgram(executableFile, desktopFilePath) {
     // currently we have no error handling as the process is started detached
     fulfill();
   });
-}
-
-function transformWmctrlList(stdout) {
-  const LINE_REG_EX = /([^\s]+)\s+(-*\d+)\s+(-*\d+)\s+(-*\d+)\s+(-*\d+)\s+(-*\d+)\s+(-*\d+)\s+([^\s]+)/;
-  const data = [];
-  const lines = stdout.split('\n');
-  lines.forEach((line) => {
-    const fields = LINE_REG_EX.exec(line);
-    if (fields && !isExcludedWmClassName(fields[8])) {
-      data.push({
-        windowId: fields[1],
-        windowIdDec: parseInt(fields[1], 16),
-        gravity: parseInt(fields[2], 10),
-        x: parseInt(fields[4], 10),
-        y: parseInt(fields[5], 10),
-        width: parseInt(fields[6], 10),
-        height: parseInt(fields[7], 10),
-        wmClassName: fields[8],
-        simpleName: parseSimpleWindowName(fields[8]),
-        executableFile: parseExecutableFileFromWmClassName(fields[8]),
-      });
-    }
-  });
-  return data;
-}
-
-function parseExecutableFileFromWmClassName(wmClassName) {
-  const executableFile = CFG.WM_CLASS_AND_EXECUTABLE_FILE_MAP[wmClassName];
-  if (executableFile) {
-    return executableFile;
-  } else {
-    const splitValues = wmClassName.split('.');
-    return splitValues[0] + '.desktop';
-  }
-}
-
-function parseSimpleWindowName(wmClassName) {
-  const splitValues = wmClassName.split('.');
-  if (splitValues[1]) {
-    return splitValues[1];
-  } else {
-    return wmClassName;
-  }
 }
 
 function updateWindowIds(savedWindowList, currentWindowList) {
@@ -617,7 +544,7 @@ function restoreWindowPositions(savedWindowList) {
   const promises = [];
   savedWindowList.forEach((win) => {
     if (win.windowId) {
-      promises.push(restoreWindowPosition(win));
+      promises.push(mw.restoreWindowPosition(win));
     }
   });
 
@@ -630,40 +557,5 @@ function restoreWindowPositions(savedWindowList) {
   });
 }
 
-function restoreWindowPosition(win) {
-  const newPositionStr = `${win.gravity},${win.x},${win.y},${win.width},${win.height}`;
-  const removeStatesStr = 'remove,maximized_vert,maximized_horz,fullscreen,above,below,hidden,sticky,modal,shaded,demands_attention';
-  const baseCmd = `wmctrl -i -r ${win.windowId}`;
-
-  // add remove states command
-  let cmd = `${baseCmd} -b  ${removeStatesStr}`;
-
-  // add restore positions command
-  if (CFG.IS_USE_XDOTOOL) {
-    const decId = win.windowIdDec;
-    // this is what the implementation with xdotool would look like
-    cmd = `${cmd} && xdotool windowsize ${decId} ${win.width} ${win.height} windowmove ${decId} ${win.x} ${win.y}`
-  } else {
-    cmd = `${cmd} && ${baseCmd} -e ${newPositionStr}`;
-  }
-
-  // add add states command
-  if (win.states && win.states.length > 0) {
-    cmd = `${cmd} &&  ${baseCmd} -b add,${win.states.join(',')}`;
-  }
-
-  return new Promise((fulfill, reject) => {
-    exec(cmd, (error, stdout, stderr) => {
-      if (error || stderr) {
-        console.error(error, stderr);
-        reject(error || stderr);
-      } else {
-        const lines = stdout.split('\n');
-        win.desktopFilePath = lines[0];
-        fulfill(stdout);
-      }
-    });
-  });
-}
 
 

@@ -15,6 +15,7 @@
   "dependencies": {
     "jfs": "^0.2.6",
     "promise-waterfall": "^0.1.0",
-    "prompt": "^1.0.0"
+    "prompt": "^1.0.0",
+    "x11": "^2.2.1"
   }
 }
