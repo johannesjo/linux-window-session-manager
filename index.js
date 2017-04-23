@@ -537,7 +537,6 @@ function startProgram(executableFile, desktopFilePath) {
   } else {
     [cmd, args] = parseCmdToSpawn(executableFile);
   }
-  console.log(cmd, args);
 
   return new Promise((fulfill) => {
     spawn(cmd, args, {
