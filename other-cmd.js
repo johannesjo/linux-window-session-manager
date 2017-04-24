@@ -82,7 +82,6 @@ function readAndSetAdditionalMetaDataForWin(win) {
             let className = '';
             classNames.forEach((state) => {
               if (state !== '') {
-                console.log(state);
                 className += state.replace(/"/g, '') + '.';
               }
             });
@@ -153,7 +152,7 @@ function startProgram(executableFile, desktopFilePath) {
 // GET ACTIVE WINDOW LIST
 // ----------------------
 function getActiveWindowList() {
-  return new Promise((fulfill) => {
+  return new Promise((fulfill, reject) => {
     getActiveWindowIds()
       .then((windowIds) => {
         const windowList = [];
@@ -161,9 +160,25 @@ function getActiveWindowList() {
           windowList.push({
             windowId: windowId,
             windowIdDec: parseInt(windowId, 16),
-          })
+          });
         });
-        fulfill(windowList);
+
+        // add meta data right away
+        const promises = [];
+        windowList.forEach((win) => {
+          promises.push(readAndSetAdditionalMetaDataForWin(win));
+        });
+
+        Promise.all(promises)
+          .then(() => {
+            const filteredWindows =
+              windowList
+                .filter((win) => {
+                  return (!win.wmType || win.wmType === '_NET_WM_WINDOW_TYPE_NORMAL') && !isExcludedWmClassName(win.wmClassName);
+                });
+            fulfill(filteredWindows);
+          })
+          .catch(reject);
       });
   }).catch(catchGenericErr);
 }
@@ -188,18 +203,6 @@ function parseWindowIds(stdout) {
   return str.split(', ');
 }
 
-const fs = require('fs');
-CFG = JSON.parse(fs.readFileSync(__dirname + '/config.json', 'utf8'));
-
-getActiveWindowList()
-  .then((res) => {
-    console.log(res);
-    res.forEach((win) => {
-      const windowsToHandle = [];
-      readAndSetAdditionalMetaDataForWin(win)
-        .then(() => {
-          console.log(win);
-          console.log('------------------');
-        });
-    });
-  });
+function isExcludedWmClassName(wmClassName) {
+  return CFG.WM_CLASS_EXCLUSIONS.indexOf(wmClassName) > -1;
+}

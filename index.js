@@ -78,7 +78,7 @@ function getUserHome() {
 }
 
 function catchGenericErr(err) {
-  console.error('Generic Error', err);
+  console.error('Generic Error in Main Handler', err);
 }
 
 function saveSession(sessionName, inputHandlers) {
@@ -87,14 +87,13 @@ function saveSession(sessionName, inputHandlers) {
   return metaW.getActiveWindowList()
     .then((windowList) => {
       return Promise.all([
-        readAndSetAdditionalMetaData(windowList),
         guessAndSetDesktopFilePaths(windowList, inputHandlers.desktopFilePath),
         metaW.getConnectedDisplaysId(),
       ]);
     })
     .then((results) => {
       const windowList = results[0];
-      const connectedDisplaysId = results[2];
+      const connectedDisplaysId = results[1];
       return saveSessionForDisplayToDb(sessionToHandle, connectedDisplaysId, windowList);
     })
     .catch((err) => {
@@ -291,20 +290,6 @@ function isAllAppsStarted(savedWindowList, currentWindowList) {
   return isAllStarted;
 }
 
-function readAndSetAdditionalMetaData(windowList) {
-  return new Promise((fulfill, reject) => {
-    const promises = [];
-    windowList.forEach((win) => {
-      promises.push(metaW.readAndSetAdditionalMetaDataForWin(win));
-    });
-
-    Promise.all(promises)
-      .then(() => {
-        fulfill(windowList);
-      })
-      .catch(reject);
-  }).catch(catchGenericErr);
-}
 
 function guessAndSetDesktopFilePaths(windowList, inputHandler) {
   const promises = [];
