@@ -18,7 +18,6 @@ function catchGenericErr(err) {
   console.error('otherCmd: Generic Error', err);
 }
 
-
 // display
 // -------
 function getConnectedDisplaysId() {
@@ -88,8 +87,8 @@ function readAndSetAdditionalMetaDataForWin(win) {
             const states = value.split(', ');
             win.states = [];
             states.forEach((state) => {
-              if (state !== '' && CFG.WM_STATES_MAP[state]) {
-                win.states.push(CFG.WM_STATES_MAP[state]);
+              if (state !== '') {
+                win.states.push(state);
               }
             });
           }

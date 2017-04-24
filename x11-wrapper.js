@@ -39,12 +39,12 @@ function wrapX11(fn) {
   };
 }
 
-const testFn = wrapX11(setState);
+//const testFn = wrapX11(setState);
 
-testFn(TEST_WIN_ID, 'remove', ['_NET_WM_STATE_MAXIMIZED_VERT', '_NET_WM_STATE_MAXIMIZED_HORZ', '_NET_WM_STATE_FULLSCREEN'])
-  .then((res) => {
-    console.log(res);
-  });
+//testFn('0x04c00001', 'remove', ['_NET_WM_STATE_MAXIMIZED_VERT', '_NET_WM_STATE_MAXIMIZED_HORZ', '_NET_WM_STATE_FULLSCREEN'])
+//  .then((res) => {
+//    console.log(res);
+//  });
 
 function initX11() {
   return new Promise((fulfill, reject) => {
@@ -126,7 +126,9 @@ function setState(wid, actionP, props) {
         data.writeUInt32LE(sourceIndication, offsetCounter());
 
         X.SendEvent(root, 0, x11.eventMask.SubstructureRedirect, data);
-        fulfill();
+
+        // we need a little time for the buffer to be processed
+        setTimeout(fulfill, 100);
       }
     });
   });

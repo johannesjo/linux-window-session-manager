@@ -1,8 +1,11 @@
 const exec = require('child_process').exec;
+let x11w;
 let CFG;
 
 module.exports = (passedCFG) => {
   CFG = passedCFG;
+  x11w = require('./x11-wrapper')(CFG);
+
   return {
     getActiveWindowList,
     closeWindow,
@@ -97,37 +100,31 @@ function closeWindow(windowId) {
 
 function restoreWindowPosition(win) {
   const newPositionStr = `${win.gravity},${win.x},${win.y},${win.width},${win.height}`;
-  const removeStatesStr = 'remove,maximized_vert,maximized_horz,fullscreen,above,below,hidden,sticky,modal,shaded,demands_attention';
+  const removeStatesStr = ['_NET_WM_STATE_MAXIMIZED_VERT', '_NET_WM_STATE_MAXIMIZED_HORZ'];
   const baseCmd = `wmctrl -i -r ${win.windowId}`;
 
-  // add remove states command
-  let cmd = `${baseCmd} -b  ${removeStatesStr}`;
-
-  // add restore positions command
-  //if (CFG.IS_USE_XDOTOOL) {
-  //  const decId = win.windowIdDec;
-  //  // this is what the implementation with xdotool would look like
-  //  cmd = `${cmd} && xdotool windowsize ${decId} ${win.width} ${win.height} windowmove ${decId} ${win.x} ${win.y}`
-  //} else {
-  cmd = `${cmd} && ${baseCmd} -e ${newPositionStr}`;
-  //}
-
-  // add add states command
-  if (win.states && win.states.length > 0) {
-    cmd = `${cmd} &&  ${baseCmd} -b add,${win.states.join(',')}`;
-  }
+  // move pos
+  let cmd = `${baseCmd} -e ${newPositionStr}`;
 
   return new Promise((fulfill, reject) => {
-    exec(cmd, (error, stdout, stderr) => {
-      if (error || stderr) {
-        console.error(error, stderr);
-        reject(error || stderr);
-      } else {
-        const lines = stdout.split('\n');
-        win.desktopFilePath = lines[0];
-        fulfill(stdout);
-      }
-    });
+    x11w.setState(win.windowIdDec, 'remove', removeStatesStr)
+      .then(() => {
+        exec(cmd, (error, stdout, stderr) => {
+          if (error || stderr) {
+            console.error(error, stderr);
+            reject(error || stderr);
+          } else {
+            if (win.states && win.states.length > 0) {
+              x11w.setState(win.windowIdDec, 'add', win.states)
+                .then(() => {
+                  fulfill();
+                });
+            } else {
+              fulfill();
+            }
+          }
+        });
+      });
   }).catch(catchGenericErr);
 }
 

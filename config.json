@@ -15,13 +15,6 @@
     "desktop_window.Nautilus",
     "electron.Electron"
   ],
-  "WM_STATES_MAP": {
-    "_NET_WM_STATE_MAXIMIZED_VERT": "maximized_vert",
-    "_NET_WM_STATE_MAXIMIZED_HORZ": "maximized_horz",
-    "_NET_WM_STATE_FULLSCREEN": "fullscreen",
-    "_NET_WM_STATE_ABOVE": "above",
-    "_NET_WM_STATE_BELOW": "below"
-  },
   "WM_META_MAP": {
     "_NET_WM_DESKTOP(CARDINAL)": "wmCurrentDesktopNr",
     "WM_NAME(UTF8_STRING)": "wmTitle",
