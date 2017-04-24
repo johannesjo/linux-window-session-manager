@@ -2,6 +2,8 @@ let wmctrl;
 let otherCmd;
 let x11w;
 let CFG;
+const waterfall = require('promise-waterfall');
+
 module.exports = (passedCFG) => {
   CFG = passedCFG;
   wmctrl = require('./wmctrl')(CFG);
@@ -67,25 +69,27 @@ function getActiveWindowList() {
     return otherCmd.getActiveWindowList()
       .then((windowList) => {
         const promises = [];
+
         windowList.forEach((win) => {
-          const promise = getWindowGeometry(win.windowId)
-            .then((geo) => {
-              for (let prop in geo) {
-                if (geo.hasOwnProperty(prop)) {
-                  win[prop] = geo[prop];
+          promises.push(() => {
+            return getWindowGeometry(win.windowId)
+              .then((geo) => {
+                for (let prop in geo) {
+                  if (geo.hasOwnProperty(prop)) {
+                    win[prop] = geo[prop];
+                  }
                 }
-              }
 
-              // TODO order that adding of all those different properties a little better
-              // add missing static properties
-              win.simpleName = parseSimpleWindowName(win.wmClassName);
-              win.executableFile = parseExecutableFileFromWmClassName(win.wmClassName);
-            });
-
-          promises.push(promise);
+                // TODO organize adding of all those different properties better
+                // add missing static properties
+                win.simpleName = parseSimpleWindowName(win.wmClassName);
+                win.executableFile = parseExecutableFileFromWmClassName(win.wmClassName);
+              });
+          });
         });
 
-        Promise.all(promises)
+        // we're using a waterfall because we're dealing with x11 requests
+        waterfall(promises)
           .then(() => {
             fulfill(windowList);
           })

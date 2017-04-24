@@ -106,9 +106,7 @@ function getWindowGeometry(winId) {
           } else {
             geo.width = res.width;
             geo.height = res.height;
-            setTimeout(() => {
-              fulfill(geo);
-            }, CFG.GIVE_X11_TIME_TIMEOUT);
+            fulfill(geo);
           }
         });
       }
