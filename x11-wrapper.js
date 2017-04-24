@@ -13,6 +13,7 @@ module.exports = (passedCFG) => {
   CFG = passedCFG;
   return {
     setState: wrapX11(setState),
+    goToViewport: wrapX11(goToViewport),
   };
 };
 
@@ -41,13 +42,13 @@ function wrapX11(fn) {
   };
 }
 
-//const testFn = wrapX11(setState);
-const testFn = wrapX11(goToViewport);
-testFn(0, 0);
+//const testFn = wrapX11(goToViewport);
+//testFn(0, 0);
 
-//testFn('0x04c00001', 'remove', ['_NET_WM_STATE_MAXIMIZED_VERT', '_NET_WM_STATE_MAXIMIZED_HORZ', '_NET_WM_STATE_FULLSCREEN'])
+//const testFn2 = wrapX11(setState);
+//testFn2('0x04a00001', 'remove', ['_NET_WM_STATE_MAXIMIZED_VERT', '_NET_WM_STATE_MAXIMIZED_HORZ', '_NET_WM_STATE_FULLSCREEN'])
 //  .then((res) => {
-//    console.log(res);
+//    console.log('NORMAL', res);
 //  });
 
 function initX11() {
@@ -68,6 +69,15 @@ function initX11() {
 
 // HELPER
 // ------
+function counter(initialVal, modifier) {
+  // to start at val we need to subtract the modifier first
+  let val = initialVal - modifier;
+  return () => {
+    val += modifier;
+    return val
+  };
+}
+
 function getAtoms(list, cb) {
   const res = {};
   const getAtom = () => {
@@ -88,28 +98,29 @@ function getAtoms(list, cb) {
   getAtom();
 }
 
-function sendX11ClientMessage(wid, eventName, eventProps, optionalEventMask) {
-  if (eventProps.length > 3) {
-    throw 'only supports 3 properties at once max';
+function sendX11ClientMessage(wid, eventName, eventProperties, optionalEventMask) {
+  if (eventProperties.length > 4) {
+    throw 'only supports 4 properties at once max';
   }
 
-  function offsetCounter() {
-    offsetCounterOffset += 4;
-    return offsetCounterOffset;
-  }
-
+  const offsetCounter = counter(4, 4);
   const eventMask = optionalEventMask || x11.eventMask.SubstructureRedirect;
-  let offsetCounterOffset = 0;
-  const data = new Buffer(32);
-  let atomsList = [];
 
+  // create atoms to look up
+  let atomsList = [];
+  atomsList.push(eventName);
+  eventProperties.forEach((eventProperty) => {
+    if (eventProperty.isAtom) {
+      atomsList.push(eventProperty.value);
+    }
+  });
+
+  // start buffer input
+  const data = new Buffer(32);
   data.fill(0);
   data.writeInt8(33, 0); // 33 = ClientMessage
   data.writeInt8(32, 1); // format
   data.writeUInt32LE(wid, offsetCounter());
-
-  atomsList.push(eventName);
-  atomsList = atomsList.concat(eventProps);
 
   return new Promise((fulfill, reject) => {
     getAtoms(atomsList, (err, atoms) => {
@@ -119,8 +130,12 @@ function sendX11ClientMessage(wid, eventName, eventProps, optionalEventMask) {
       } else {
         data.writeUInt32LE(atoms[eventName], offsetCounter());
 
-        eventProps.forEach((prop) => {
-          data.writeUInt32LE(atoms[prop], offsetCounter());
+        eventProperties.forEach((eventProperty) => {
+          if (eventProperty.isAtom) {
+            data.writeUInt32LE(atoms[eventProperty.value], offsetCounter());
+          } else {
+            data.writeUInt32LE(eventProperty.value, offsetCounter());
+          }
         });
 
         let sourceIndication = 1;
@@ -137,100 +152,35 @@ function sendX11ClientMessage(wid, eventName, eventProps, optionalEventMask) {
 
 // METHODS
 // -------
-
 function goToViewport(x, y) {
-  function offsetCounter() {
-    offsetCounterOffset += 4;
-    return offsetCounterOffset;
-  }
-
-  const type = '_NET_DESKTOP_VIEWPORT';
-  let offsetCounterOffset = 0;
-  const data = new Buffer(32);
-  let atomsList = [];
-
-  data.fill(0);
-  data.writeInt8(33, 0); // 33 = ClientMessage
-  data.writeInt8(32, 1); // format
-  data.writeUInt32LE(root, offsetCounter());
-
-  atomsList.push(type);
-
-  return new Promise((fulfill, reject) => {
-    getAtoms(atomsList, (err, atoms) => {
-      if (err) {
-        reject(err);
-        throw err;
-      } else {
-        data.writeUInt32LE(atoms[type], offsetCounter());
-        data.writeUInt32LE(x, offsetCounter());
-        data.writeUInt32LE(y, offsetCounter());
-
-        let sourceIndication = 1;
-        data.writeUInt32LE(sourceIndication, offsetCounter());
-
-        X.SendEvent(root, 0, x11.eventMask.SubstructureRedirect, data);
-
-        // we need a little time for the buffer to be processed
-        setTimeout(fulfill, CFG.GIVE_X11_TIME_TIMEOUT);
-      }
-    });
-  });
-
-  return sendX11ClientMessage(root, '_NET_DESKTOP_VIEWPORT', [x, y]);
+  return sendX11ClientMessage(root, '_NET_DESKTOP_VIEWPORT', [
+      { value: x },
+      { value: y },
+    ]
+  );
 }
 
-function setState(wid, actionP, props) {
-  if (props.length > 3) {
-    throw 'only supports 3 attributes at once max';
-  }
-
-  function offsetCounter() {
-    offsetCounterOffset += 4;
-    return offsetCounterOffset;
-  }
-
-  const type = '_NET_WM_STATE';
-  let offsetCounterOffset = 0;
-  const actions = {
+function setState(wid, actionStr, statesToHandle) {
+  const ACTIONS_MAP = {
     remove: 0,
     add: 1,
     toggle: 2,
   };
-  const data = new Buffer(32);
-  const action = actions[actionP];
-  let atomsList = [];
 
-  data.fill(0);
-  data.writeInt8(33, 0); // 33 = ClientMessage
-  data.writeInt8(32, 1); // format
-  data.writeUInt32LE(wid, offsetCounter());
+  const action = ACTIONS_MAP[actionStr];
+  let properties = [
+    { value: action },
+  ];
 
-  atomsList.push(type);
-  atomsList = atomsList.concat(props);
-
-  return new Promise((fulfill, reject) => {
-    getAtoms(atomsList, (err, atoms) => {
-      if (err) {
-        reject(err);
-        throw err;
-      } else {
-        data.writeUInt32LE(atoms[type], offsetCounter());
-        data.writeUInt32LE(action, offsetCounter());
-        props.forEach((prop) => {
-          data.writeUInt32LE(atoms[prop], offsetCounter());
-        });
-        let sourceIndication = 1;
-        data.writeUInt32LE(sourceIndication, offsetCounter());
-
-        X.SendEvent(root, 0, x11.eventMask.SubstructureRedirect, data);
-
-        // we need a little time for the buffer to be processed
-        setTimeout(fulfill, CFG.GIVE_X11_TIME_TIMEOUT);
-      }
+  statesToHandle.forEach((stateProperty) => {
+    properties.push({
+      isAtom: true,
+      value: stateProperty,
     });
   });
+  return sendX11ClientMessage(wid, '_NET_WM_STATE', properties);
 }
+
 
 //X.require('render', function (err, Render) {
 //  X.Render = Render;
