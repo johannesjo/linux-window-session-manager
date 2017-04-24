@@ -104,13 +104,13 @@ function restoreWindowPosition(win) {
   let cmd = `${baseCmd} -b  ${removeStatesStr}`;
 
   // add restore positions command
-  if (CFG.IS_USE_XDOTOOL) {
-    const decId = win.windowIdDec;
-    // this is what the implementation with xdotool would look like
-    cmd = `${cmd} && xdotool windowsize ${decId} ${win.width} ${win.height} windowmove ${decId} ${win.x} ${win.y}`
-  } else {
-    cmd = `${cmd} && ${baseCmd} -e ${newPositionStr}`;
-  }
+  //if (CFG.IS_USE_XDOTOOL) {
+  //  const decId = win.windowIdDec;
+  //  // this is what the implementation with xdotool would look like
+  //  cmd = `${cmd} && xdotool windowsize ${decId} ${win.width} ${win.height} windowmove ${decId} ${win.x} ${win.y}`
+  //} else {
+  cmd = `${cmd} && ${baseCmd} -e ${newPositionStr}`;
+  //}
 
   // add add states command
   if (win.states && win.states.length > 0) {
