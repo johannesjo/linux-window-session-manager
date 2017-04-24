@@ -25,5 +25,10 @@
   "WM_META_MAP_NUMBER_TYPES": [
     "_NET_WM_PID(CARDINAL)",
     "_NET_WM_DESKTOP(CARDINAL)"
-  ]
+  ],
+  "CMD": {
+    "LOCATE": "locate",
+    "GET_DISPLAY_ID": "xrandr --query | grep '\\bconnected\\b'",
+    "XPROP_ID": "xprop -id"
+  }
 }

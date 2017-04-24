@@ -21,7 +21,7 @@ function catchGenericErr(err) {
 // display
 // -------
 function getConnectedDisplaysId() {
-  const cmd = `xrandr --query | grep '\\bconnected\\b'`;
+  const cmd = CFG.CMD.GET_DISPLAY_ID;
   return new Promise((fulfill, reject) => {
     exec(cmd, (error, stdout, stderr) => {
       if (error || stderr) {
@@ -59,7 +59,7 @@ function parseConnectedDisplaysId(stdout) {
 // --------
 function readAndSetAdditionalMetaDataForWin(win) {
   return new Promise((fulfill, reject) => {
-    exec(`xprop -id ${win.windowId}`, (error, stdout, stderr) => {
+    exec(`${CFG.CMD.XPROP_ID} ${win.windowId}`, (error, stdout, stderr) => {
       if (error || stderr) {
         console.error(error, stderr);
         reject(error || stderr);
@@ -102,7 +102,7 @@ function readAndSetAdditionalMetaDataForWin(win) {
 // TODO give an array as response
 function locate(file) {
   return new Promise((fulfill, reject) => {
-    exec('locate ' + file, (error, stdout, stderr) => {
+    exec(CFG.CMD.LOCATE + ' ' + file, (error, stdout, stderr) => {
       if (error || stderr) {
         reject(error | stderr);
       } else {
