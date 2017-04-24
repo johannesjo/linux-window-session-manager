@@ -19,7 +19,7 @@ module.exports = (passedCFG) => {
 };
 
 // Get all windows via:
-// xprop -root|grep ^_NET_CLIENT_LIST
+// xprop -root|grep ^_NET_CLIENT_LIST(WINDOW)
 
 function wrapX11(fn) {
   return function () {

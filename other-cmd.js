@@ -7,6 +7,7 @@ let CFG;
 module.exports = (passedCFG) => {
   CFG = passedCFG;
   return {
+    getActiveWindowList,
     getConnectedDisplaysId,
     readAndSetAdditionalMetaDataForWin,
     locate,
@@ -74,13 +75,18 @@ function readAndSetAdditionalMetaDataForWin(win) {
           words.splice(0, 2);
           const value = words.join(' ');
           const propertyNameFromMap = CFG.WM_META_MAP[propertyName];
-          if (propertyNameFromMap) {
-            // special handle number types
-            if (CFG.WM_META_MAP_NUMBER_TYPES.indexOf(propertyName) > -1) {
-              win[propertyNameFromMap] = parseInt(value, 10);
-            } else {
-              win[propertyNameFromMap] = value;
-            }
+          // parse wmClassName
+          if (propertyName === 'WM_CLASS(STRING)') {
+            const propertyNameFromMap = CFG.WM_META_MAP[propertyName]
+            const classNames = value.split(', ');
+            let className = '';
+            classNames.forEach((state) => {
+              if (state !== '') {
+                console.log(state);
+                className += state.replace(/"/g, '') + '.';
+              }
+            });
+            win[propertyNameFromMap] = className.substr(0, className.length - 1);
           }
           // parse states
           else if (propertyName === '_NET_WM_STATE(ATOM)') {
@@ -91,6 +97,15 @@ function readAndSetAdditionalMetaDataForWin(win) {
                 win.states.push(state);
               }
             });
+          }
+          // parse simple strings and integers
+          else if (propertyNameFromMap) {
+            // special handle number types
+            if (CFG.WM_META_MAP_NUMBER_TYPES.indexOf(propertyName) > -1) {
+              win[propertyNameFromMap] = parseInt(value, 10);
+            } else {
+              win[propertyNameFromMap] = value;
+            }
           }
         });
         fulfill(win);
@@ -134,3 +149,57 @@ function startProgram(executableFile, desktopFilePath) {
     fulfill();
   }).catch(catchGenericErr);
 }
+
+// GET ACTIVE WINDOW LIST
+// ----------------------
+function getActiveWindowList() {
+  return new Promise((fulfill) => {
+    getActiveWindowIds()
+      .then((windowIds) => {
+        const windowList = [];
+        windowIds.forEach((windowId) => {
+          windowList.push({
+            windowId: windowId,
+            windowIdDec: parseInt(windowId, 16),
+          })
+        });
+        fulfill(windowList);
+      });
+  }).catch(catchGenericErr);
+}
+
+function getActiveWindowIds() {
+  const cmd = 'xprop -root|grep ^_NET_CLIENT_LIST\\(WINDOW\\)';
+  return new Promise((fulfill, reject) => {
+    exec(cmd, function (error, stdout, stderr) {
+      if (error || stderr) {
+        console.error(error, stderr);
+        reject(error | stderr);
+      } else {
+        const windowIds = parseWindowIds(stdout);
+        fulfill(windowIds);
+      }
+    });
+  }).catch(catchGenericErr);
+}
+
+function parseWindowIds(stdout) {
+  const str = stdout.replace('_NET_CLIENT_LIST(WINDOW): window id #', '');
+  return str.split(', ');
+}
+
+const fs = require('fs');
+CFG = JSON.parse(fs.readFileSync(__dirname + '/config.json', 'utf8'));
+
+getActiveWindowList()
+  .then((res) => {
+    console.log(res);
+    res.forEach((win) => {
+      const windowsToHandle = [];
+      readAndSetAdditionalMetaDataForWin(win)
+        .then(() => {
+          console.log(win);
+          console.log('------------------');
+        });
+    });
+  });

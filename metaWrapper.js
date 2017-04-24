@@ -10,7 +10,6 @@ module.exports = (passedCFG) => {
 
   return {
     // wmctrl
-    getActiveWindowList,
     closeWindow,
 
     // node x11
@@ -18,6 +17,7 @@ module.exports = (passedCFG) => {
     restoreWindowPosition,
 
     // other cmd
+    getActiveWindowList,
     getConnectedDisplaysId,
     readAndSetAdditionalMetaDataForWin,
     locate,
@@ -26,10 +26,6 @@ module.exports = (passedCFG) => {
 };
 
 // WMCTRL
-function getActiveWindowList() {
-  return wmctrl.getActiveWindowList();
-}
-
 function closeWindow(windowId) {
   return wmctrl.closeWindow(windowId);
 }
@@ -44,6 +40,10 @@ function restoreWindowPosition(win) {
 }
 
 // OTHER CMD
+function getActiveWindowList() {
+  return otherCmd.getActiveWindowList();
+}
+
 function getConnectedDisplaysId() {
   return otherCmd.getConnectedDisplaysId();
 }

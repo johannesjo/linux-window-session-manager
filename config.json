@@ -17,6 +17,8 @@
     "electron.Electron"
   ],
   "WM_META_MAP": {
+    "WM_CLASS(STRING)": "wmClassName",
+    "_NET_WM_STATE(ATOM)": "states",
     "_NET_WM_DESKTOP(CARDINAL)": "wmCurrentDesktopNr",
     "WM_NAME(UTF8_STRING)": "wmTitle",
     "_NET_WM_PID(CARDINAL)": "wmPid",
