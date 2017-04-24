@@ -53,6 +53,8 @@ if (action === 'save') {
   base.restoreSession(sessionName, isCloseAllWinBefore);
 } else if (action === 'remove') {
   base.removeSession(sessionName);
+} else if (action === 'resetCfg') {
+  base.resetCfg();
 } else {
   console.log(`
   Usage:\n
