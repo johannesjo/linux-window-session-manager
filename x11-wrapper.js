@@ -14,6 +14,7 @@ module.exports = (passedCFG) => {
   return {
     setState: wrapX11(setState),
     goToViewport: wrapX11(goToViewport),
+    restoreWindowPosition: wrapX11(restoreWindowPosition),
   };
 };
 
@@ -28,7 +29,7 @@ function wrapX11(fn) {
     return initX11()
       .then(() => {
         const mainFnResult = fn.apply(that, args);
-        if (mainFnResult.then) {
+        if (mainFnResult && mainFnResult.then) {
           mainFnResult
             .then(function () {
               X.terminate();
@@ -44,6 +45,18 @@ function wrapX11(fn) {
 
 //const testFn = wrapX11(goToViewport);
 //testFn(0, 0);
+
+//const testFnX = wrapX11(restoreWindowPosition);
+//testFnX({
+//  windowId: '0x04a00001',
+//  x: 0,
+//  y: 0,
+//  width: 500,
+//  height: 500,
+//  states: [
+//    '_NET_WM_STATE_MAXIMIZED_VERT'
+//  ]
+//});
 
 //const testFn2 = wrapX11(setState);
 //testFn2('0x04a00001', 'remove', ['_NET_WM_STATE_MAXIMIZED_VERT', '_NET_WM_STATE_MAXIMIZED_HORZ', '_NET_WM_STATE_FULLSCREEN'])
@@ -65,6 +78,56 @@ function initX11() {
       console.error(err);
     });
   });
+}
+
+// METHODS
+// -------
+function restoreWindowPosition(win) {
+  const STATES_TO_RESET = [
+    '_NET_WM_STATE_MAXIMIZED_VERT',
+    '_NET_WM_STATE_MAXIMIZED_HORZ'
+  ];
+  return new Promise((fulfill, reject) => {
+    setState(win.windowId, 'remove', STATES_TO_RESET)
+      .catch(reject)
+      .then(() => {
+        X.MoveResizeWindow(win.windowId, win.x, win.y, win.width, win.height);
+        setState(win.windowId, 'add', win.states)
+          .catch(reject)
+          .then(() => {
+            fulfill();
+          });
+      });
+  });
+}
+
+function goToViewport(x, y) {
+  return sendX11ClientMessage(root, '_NET_DESKTOP_VIEWPORT', [
+      { value: x },
+      { value: y },
+    ]
+  );
+}
+
+function setState(wid, actionStr, statesToHandle) {
+  const ACTIONS_MAP = {
+    remove: 0,
+    add: 1,
+    toggle: 2,
+  };
+  const action = ACTIONS_MAP[actionStr];
+  let properties = [
+    { value: action },
+  ];
+
+  // all properties need to be looked up for their atom id
+  statesToHandle.forEach((stateProperty) => {
+    properties.push({
+      isAtom: true,
+      value: stateProperty,
+    });
+  });
+  return sendX11ClientMessage(wid, '_NET_WM_STATE', properties);
 }
 
 // HELPER
@@ -149,38 +212,6 @@ function sendX11ClientMessage(wid, eventName, eventProperties, optionalEventMask
     });
   });
 }
-
-// METHODS
-// -------
-function goToViewport(x, y) {
-  return sendX11ClientMessage(root, '_NET_DESKTOP_VIEWPORT', [
-      { value: x },
-      { value: y },
-    ]
-  );
-}
-
-function setState(wid, actionStr, statesToHandle) {
-  const ACTIONS_MAP = {
-    remove: 0,
-    add: 1,
-    toggle: 2,
-  };
-
-  const action = ACTIONS_MAP[actionStr];
-  let properties = [
-    { value: action },
-  ];
-
-  statesToHandle.forEach((stateProperty) => {
-    properties.push({
-      isAtom: true,
-      value: stateProperty,
-    });
-  });
-  return sendX11ClientMessage(wid, '_NET_WM_STATE', properties);
-}
-
 
 //X.require('render', function (err, Render) {
 //  X.Render = Render;

@@ -12,10 +12,10 @@ module.exports = (passedCFG) => {
     // wmctrl
     getActiveWindowList,
     closeWindow,
-    restoreWindowPosition,
 
     // node x11
     goToFirstWorkspace,
+    restoreWindowPosition,
 
     // other cmd
     getConnectedDisplaysId,
@@ -34,13 +34,13 @@ function closeWindow(windowId) {
   return wmctrl.closeWindow(windowId);
 }
 
-function restoreWindowPosition(win) {
-  return wmctrl.restoreWindowPosition(win);
-}
-
 // NODE X11
 function goToFirstWorkspace() {
   return x11w.goToViewport(0, 0);
+}
+
+function restoreWindowPosition(win) {
+  return x11w.restoreWindowPosition(win);
 }
 
 // OTHER CMD
