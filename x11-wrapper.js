@@ -19,8 +19,9 @@ module.exports = (passedCFG) => {
   };
 };
 
-// Get all windows via:
-// xprop -root|grep ^_NET_CLIENT_LIST(WINDOW)
+function catchGenericErr(err) {
+  console.error('x11Wrapper: Generic Error', err);
+}
 
 function wrapX11(fn) {
   return function () {
@@ -40,7 +41,7 @@ function wrapX11(fn) {
           X.terminate();
         }
         return mainFnResult;
-      });
+      }).catch(catchGenericErr);
   };
 }
 
@@ -83,7 +84,7 @@ function initX11() {
     }).on('error', (err) => {
       console.error(err);
     });
-  });
+  }).catch(catchGenericErr);
 }
 
 // METHODS
@@ -112,7 +113,7 @@ function getWindowGeometry(winId) {
         });
       }
     });
-  });
+  }).catch(catchGenericErr);
 }
 
 function restoreWindowPosition(win) {
@@ -131,7 +132,7 @@ function restoreWindowPosition(win) {
             fulfill();
           });
       });
-  });
+  }).catch(catchGenericErr);
 }
 
 function goToViewport(x, y) {
@@ -243,7 +244,7 @@ function sendX11ClientMessage(wid, eventName, eventProperties, optionalEventMask
         setTimeout(fulfill, CFG.GIVE_X11_TIME_TIMEOUT);
       }
     });
-  });
+  }).catch(catchGenericErr);
 }
 
 //X.require('render', function (err, Render) {
