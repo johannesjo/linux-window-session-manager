@@ -10,8 +10,9 @@ module.exports = (passedCFG) => {
     getActiveWindowList,
     closeWindow,
     restoreWindowPosition,
-    // other cmd
     goToFirstWorkspace,
+
+    // other cmd
     getConnectedDisplaysId,
     readAndSetAdditionalMetaDataForWin,
     locate,
@@ -32,11 +33,11 @@ function restoreWindowPosition(win) {
   return wmctrl.restoreWindowPosition(win);
 }
 
-// OTHER CMD
 function goToFirstWorkspace() {
-  return otherCmd.goToFirstWorkspace();
+  return wmctrl.goToFirstWorkspace();
 }
 
+// OTHER CMD
 function getConnectedDisplaysId() {
   return otherCmd.getConnectedDisplaysId();
 }

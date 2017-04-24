@@ -7,6 +7,7 @@ module.exports = (passedCFG) => {
     getActiveWindowList,
     closeWindow,
     restoreWindowPosition,
+    goToFirstWorkspace,
   };
 };
 
@@ -125,6 +126,20 @@ function restoreWindowPosition(win) {
         const lines = stdout.split('\n');
         win.desktopFilePath = lines[0];
         fulfill(stdout);
+      }
+    });
+  }).catch(catchGenericErr);
+}
+
+function goToFirstWorkspace() {
+  const cmd = 'wmctrl -o 0,0';
+  return new Promise((fulfill, reject) => {
+    exec(cmd, (error, stdout, stderr) => {
+      if (error || stderr) {
+        console.error(error, stderr);
+        reject(error || stderr);
+      } else {
+        fulfill();
       }
     });
   }).catch(catchGenericErr);

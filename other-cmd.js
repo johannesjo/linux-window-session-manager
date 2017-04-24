@@ -7,7 +7,6 @@ let CFG;
 module.exports = (passedCFG) => {
   CFG = passedCFG;
   return {
-    goToFirstWorkspace,
     getConnectedDisplaysId,
     readAndSetAdditionalMetaDataForWin,
     locate,
@@ -19,19 +18,6 @@ function catchGenericErr(err) {
   console.error('otherCmd: Generic Error', err);
 }
 
-function goToFirstWorkspace() {
-  const cmd = 'xdotool set_desktop_viewport 0 0';
-  return new Promise((fulfill, reject) => {
-    exec(cmd, (error, stdout, stderr) => {
-      if (error || stderr) {
-        console.error(error, stderr);
-        reject(error || stderr);
-      } else {
-        fulfill();
-      }
-    });
-  }).catch(catchGenericErr);
-}
 
 // display
 // -------
