@@ -15,6 +15,7 @@ module.exports = (passedCFG) => {
     setState: wrapX11(setState),
     goToViewport: wrapX11(goToViewport),
     restoreWindowPosition: wrapX11(restoreWindowPosition),
+    getWindowGeometry: wrapX11(getWindowGeometry),
   };
 };
 
@@ -42,6 +43,11 @@ function wrapX11(fn) {
       });
   };
 }
+
+//const testFn = wrapX11(getWindowGeometry);
+//testFn('0x04a00001').then((geo) => {
+//  console.log(geo);
+//});
 
 //const testFn = wrapX11(goToViewport);
 //testFn(0, 0);
@@ -82,6 +88,33 @@ function initX11() {
 
 // METHODS
 // -------
+function getWindowGeometry(winId) {
+  const geo = {};
+
+  return new Promise((fulfill, reject) => {
+    X.TranslateCoordinates(winId, root, 0, 0, (err, res) => {
+      if (err) {
+        reject(err);
+      } else {
+        geo.x = res.destX;
+        geo.y = res.destY;
+
+        X.GetGeometry(winId, (err, res) => {
+          if (err) {
+            reject(err);
+          } else {
+            geo.width = res.width;
+            geo.height = res.height;
+            setTimeout(() => {
+              fulfill(geo);
+            }, CFG.GIVE_X11_TIME_TIMEOUT);
+          }
+        });
+      }
+    });
+  });
+}
+
 function restoreWindowPosition(win) {
   const STATES_TO_RESET = [
     '_NET_WM_STATE_MAXIMIZED_VERT',
