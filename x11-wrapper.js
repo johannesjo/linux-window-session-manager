@@ -4,7 +4,9 @@ const getProperty = x11prop.get_property;
 const setProperty = x11prop.set_property;
 let X;
 let root;
-let CFG;
+let CFG = {
+  GIVE_X11_TIME_TIMEOUT: 50,
+};
 const TEST_WIN_ID = 79691844;
 
 module.exports = (passedCFG) => {
@@ -40,6 +42,8 @@ function wrapX11(fn) {
 }
 
 //const testFn = wrapX11(setState);
+const testFn = wrapX11(goToViewport);
+testFn(0, 0);
 
 //testFn('0x04c00001', 'remove', ['_NET_WM_STATE_MAXIMIZED_VERT', '_NET_WM_STATE_MAXIMIZED_HORZ', '_NET_WM_STATE_FULLSCREEN'])
 //  .then((res) => {
@@ -62,6 +66,8 @@ function initX11() {
   });
 }
 
+// HELPER
+// ------
 function getAtoms(list, cb) {
   const res = {};
   const getAtom = () => {
@@ -80,6 +86,98 @@ function getAtoms(list, cb) {
     }
   };
   getAtom();
+}
+
+function sendX11ClientMessage(wid, eventName, eventProps, optionalEventMask) {
+  if (eventProps.length > 3) {
+    throw 'only supports 3 properties at once max';
+  }
+
+  function offsetCounter() {
+    offsetCounterOffset += 4;
+    return offsetCounterOffset;
+  }
+
+  const eventMask = optionalEventMask || x11.eventMask.SubstructureRedirect;
+  let offsetCounterOffset = 0;
+  const data = new Buffer(32);
+  let atomsList = [];
+
+  data.fill(0);
+  data.writeInt8(33, 0); // 33 = ClientMessage
+  data.writeInt8(32, 1); // format
+  data.writeUInt32LE(wid, offsetCounter());
+
+  atomsList.push(eventName);
+  atomsList = atomsList.concat(eventProps);
+
+  return new Promise((fulfill, reject) => {
+    getAtoms(atomsList, (err, atoms) => {
+      if (err) {
+        reject(err);
+        throw err;
+      } else {
+        data.writeUInt32LE(atoms[eventName], offsetCounter());
+
+        eventProps.forEach((prop) => {
+          data.writeUInt32LE(atoms[prop], offsetCounter());
+        });
+
+        let sourceIndication = 1;
+        data.writeUInt32LE(sourceIndication, offsetCounter());
+
+        X.SendEvent(root, 0, eventMask, data);
+
+        // we need a little time for the buffer to be processed
+        setTimeout(fulfill, CFG.GIVE_X11_TIME_TIMEOUT);
+      }
+    });
+  });
+}
+
+// METHODS
+// -------
+
+function goToViewport(x, y) {
+  function offsetCounter() {
+    offsetCounterOffset += 4;
+    return offsetCounterOffset;
+  }
+
+  const type = '_NET_DESKTOP_VIEWPORT';
+  let offsetCounterOffset = 0;
+  const data = new Buffer(32);
+  let atomsList = [];
+
+  data.fill(0);
+  data.writeInt8(33, 0); // 33 = ClientMessage
+  data.writeInt8(32, 1); // format
+  data.writeUInt32LE(root, offsetCounter());
+
+  atomsList.push(type);
+
+  return new Promise((fulfill, reject) => {
+    getAtoms(atomsList, (err, atoms) => {
+      if (err) {
+        reject(err);
+        throw err;
+      } else {
+        data.writeUInt32LE(atoms[type], offsetCounter());
+        data.writeUInt32LE(x, offsetCounter());
+        data.writeUInt32LE(y, offsetCounter());
+
+        let sourceIndication = 1;
+        data.writeUInt32LE(sourceIndication, offsetCounter());
+
+        X.SendEvent(root, 0, x11.eventMask.SubstructureRedirect, data);
+
+        // we need a little time for the buffer to be processed
+        setTimeout(fulfill, CFG.GIVE_X11_TIME_TIMEOUT);
+      }
+    });
+  });
+
+  return sendX11ClientMessage(root, '_NET_DESKTOP_VIEWPORT', [x, y]);
 }
 
 function setState(wid, actionP, props) {
