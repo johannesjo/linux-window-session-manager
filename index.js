@@ -417,13 +417,13 @@ function getMatchingWindows(win, currentWindowList) {
 function restoreWindowPositions(savedWindowList) {
   const promises = [];
   savedWindowList.forEach((win) => {
-    if (win.windowId) {
-      promises.push(metaW.restoreWindowPosition(win));
-    }
+    promises.push(() => {
+      return metaW.restoreWindowPosition(win);
+    });
   });
 
   return new Promise((fulfill, reject) => {
-    Promise.all(promises)
+    waterfall(promises)
       .then((results) => {
         fulfill(results);
       })
