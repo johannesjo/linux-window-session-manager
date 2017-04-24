@@ -54,7 +54,9 @@ x11.createClient(function (err, display) {
       }
     });
 
-    setState(TEST_WIN_ID, 'remove', ['_NET_WM_STATE_MAXIMIZED_VERT', '_NET_WM_STATE_MAXIMIZED_HORZ']);
+    //setState(TEST_WIN_ID, 'remove', ['_NET_WM_STATE_MAXIMIZED_VERT', '_NET_WM_STATE_MAXIMIZED_HORZ', '_NET_WM_STATE_FULLSCREEN']);
+    //setState(TEST_WIN_ID, 'remove', ['_NET_WM_STATE_MAXIMIZED_VERT', '_NET_WM_STATE_MAXIMIZED_HORZ', '_NET_WM_STATE_FULLSCREEN', '_NET_WM_STATE_ABOVE']);
+    setState(TEST_WIN_ID, 'remove', ['_NET_WM_STATE_MAXIMIZED_VERT']);
   });
 }).on('error', function (err) {
   console.error(err);
@@ -103,59 +105,47 @@ function getAtoms(list, cb) {
 }
 
 function setState(wid, actionP, props) {
-  function bitCounter() {
-    console.log(bitCounterOffset);
-    bitCounterOffset += 4;
-    return bitCounterOffset;
+  if (props.length > 3) {
+    throw 'only supports 3 attributes at once max';
   }
 
-  let bitCounterOffset = 0;
+  function offsetCounter() {
+    offsetCounterOffset += 4;
+    return offsetCounterOffset;
+  }
 
   const type = '_NET_WM_STATE';
+  let offsetCounterOffset = 0;
   const actions = {
     remove: 0,
     add: 1,
     toggle: 2,
   };
-  const data = new Buffer(32);
-  let prop1 = props[0];
-  let prop2 = props[1];
+  const data = new Buffer(48);
   const action = actions[actionP];
+  let atomsList = [];
 
   data.fill(0);
   data.writeInt8(33, 0); // 33 = ClientMessage
   data.writeInt8(32, 1); // format
-  data.writeUInt32LE(wid, bitCounter());
+  data.writeUInt32LE(wid, offsetCounter());
 
-  const atomsList = [];
   atomsList.push(type);
-  if (typeof action === 'undefined') {
-    console.error('Unknown action. Possible values are add, remove and toggle');
-    return;
-  }
+  atomsList = atomsList.concat(props);
 
-
-  if (prop1)
-    atomsList.push(prop1);
-  if (prop2)
-    atomsList.push(prop2);
   getAtoms(atomsList, (err, atoms) => {
     if (err) {
       throw err;
     }
 
-    data.writeUInt32LE(atoms[type], bitCounter());
-    data.writeUInt32LE(action, bitCounter());
-    data.writeUInt32LE(atoms[prop1], bitCounter());
-    console.log(data.length);
-
-    if (prop2)
-      data.writeUInt32LE(atoms[prop2], bitCounter());
-    console.log(data.length);
-
+    data.writeUInt32LE(atoms[type], offsetCounter());
+    data.writeUInt32LE(action, offsetCounter());
+    props.forEach((prop) => {
+      data.writeUInt32LE(atoms[prop], offsetCounter());
+    });
     let sourceIndication = 1;
-    data.writeUInt32LE(sourceIndication, 24);
-    console.log(wid, action, atoms[type], atoms[prop1], atoms[prop2])
+    data.writeUInt32LE(sourceIndication, bitCounter());
+
     X.SendEvent(root, 0, x11.eventMask.SubstructureRedirect, data);
   });
 }
