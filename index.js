@@ -290,7 +290,6 @@ function isAllAppsStarted(savedWindowList, currentWindowList) {
   return isAllStarted;
 }
 
-
 function guessAndSetDesktopFilePaths(windowList, inputHandler) {
   const promises = [];
   windowList.forEach((win) => {

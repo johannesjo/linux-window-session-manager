@@ -3,6 +3,10 @@
 const base = require('./index');
 const prompt = require('prompt');
 
+function catchInputHandlerErr(err) {
+  console.error('Input Handler Error: ', err);
+}
+
 const savePrompts = {
   desktopFilePath: (error, win, stdout) => {
     return new Promise((fulfill, reject) => {
@@ -11,7 +15,7 @@ const savePrompts = {
         if (displayEntries && displayEntries[0]) {
           fulfill(displayEntries[0]);
         } else {
-          reject();
+          reject('No input for desktop file path');
         }
       }
 
@@ -32,7 +36,7 @@ const savePrompts = {
 
         askForVal(displayEntries);
       }
-    });
+    }).catch(catchInputHandlerErr);
   }
 };
 
