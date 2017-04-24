@@ -1,15 +1,20 @@
 let wmctrl;
 let otherCmd;
+let x11w;
 let CFG;
 module.exports = (passedCFG) => {
   CFG = passedCFG;
   wmctrl = require('./wmctrl')(CFG);
   otherCmd = require('./other-cmd')(CFG);
+  x11w = require('./x11-wrapper')(CFG);
+
   return {
     // wmctrl
     getActiveWindowList,
     closeWindow,
     restoreWindowPosition,
+
+    // node x11
     goToFirstWorkspace,
 
     // other cmd
@@ -33,8 +38,9 @@ function restoreWindowPosition(win) {
   return wmctrl.restoreWindowPosition(win);
 }
 
+// NODE X11
 function goToFirstWorkspace() {
-  return wmctrl.goToFirstWorkspace();
+  return x11w.goToViewport(0, 0);
 }
 
 // OTHER CMD
