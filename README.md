@@ -37,7 +37,7 @@ lwsm restore --closeAllOpenWindows
 ```
 
 ## Known Quirks
-In order to resize and move the windows the X window manager is used. Unfortunately there are existing some bugs:  
+In order to resize and move the windows the X window manager is used. Unfortunately it has some bugs:  
 * Windows moved to the very left of the screen will always be off by some pixels in Unity
 * Sometimes a window can't be restored properly any more. In those cases it helps to close the window and restart the application. 
 
