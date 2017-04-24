@@ -99,8 +99,16 @@ function closeWindow(windowId) {
 }
 
 function restoreWindowPosition(win) {
+  const HEIGHT_FIXER_OFFSET = 58;
+  // try to fix window resizing on the wrong desktop
+  if (win.states.indexOf('_NET_WM_STATE_MAXIMIZED_VERT') > -1) {
+    win.height -= HEIGHT_FIXER_OFFSET;
+  }
   const newPositionStr = `${win.gravity},${win.x},${win.y},${win.width},${win.height}`;
-  const removeStatesStr = ['_NET_WM_STATE_MAXIMIZED_VERT', '_NET_WM_STATE_MAXIMIZED_HORZ'];
+  const removeStatesStr = [
+    '_NET_WM_STATE_MAXIMIZED_VERT',
+    '_NET_WM_STATE_MAXIMIZED_HORZ'
+  ];
   const baseCmd = `wmctrl -i -r ${win.windowId}`;
 
   // move pos
@@ -109,21 +117,28 @@ function restoreWindowPosition(win) {
   return new Promise((fulfill, reject) => {
     x11w.setState(win.windowIdDec, 'remove', removeStatesStr)
       .then(() => {
-        exec(cmd, (error, stdout, stderr) => {
-          if (error || stderr) {
-            console.error(error, stderr);
-            reject(error || stderr);
-          } else {
-            if (win.states && win.states.length > 0) {
-              x11w.setState(win.windowIdDec, 'add', win.states)
-                .then(() => {
-                  fulfill();
-                });
+        setTimeout(() => {
+          console.log(win.executableFile, cmd);
+
+          // we use a minor timeout to give x11 a little time
+          exec(cmd, (error, stdout, stderr) => {
+            if (error || stderr) {
+              console.error(error, stderr);
+              reject(error || stderr);
             } else {
-              fulfill();
+              setTimeout(() => {
+                if (win.states && win.states.length > 0) {
+                  x11w.setState(win.windowIdDec, 'add', win.states)
+                    .then(() => {
+                      fulfill();
+                    });
+                } else {
+                  fulfill();
+                }
+              }, CFG.GIVE_X11_TIME_TIMEOUT);
             }
-          }
-        });
+          });
+        }, CFG.GIVE_X11_TIME_TIMEOUT);
       });
   }).catch(catchGenericErr);
 }

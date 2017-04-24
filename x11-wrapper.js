@@ -128,7 +128,7 @@ function setState(wid, actionP, props) {
         X.SendEvent(root, 0, x11.eventMask.SubstructureRedirect, data);
 
         // we need a little time for the buffer to be processed
-        setTimeout(fulfill, 100);
+        setTimeout(fulfill, CFG.GIVE_X11_TIME_TIMEOUT);
       }
     });
   });
