@@ -1,10 +1,9 @@
 # Linux Window Session Manager
 
 This is a library / command line tool that let's you save and reload your opened programs and the positions of their windows. 
-
 Supports Unity and Gnome Desktops and possibly all other compositing window managers using X.
  
- There's also a [companion tool in form of an indicator applet](https://github.com/johannesjo/linux-window-session-manger-indicator) if you like such things but this package can't be used standalone.
+There's also a [companion tool in form of an indicator applet](https://github.com/johannesjo/linux-window-session-manger-indicator) if you like such things but this package can also be used standalone.
  
 ## Installation
 ```
