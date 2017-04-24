@@ -4,84 +4,62 @@ const getProperty = x11prop.get_property;
 const setProperty = x11prop.set_property;
 let X;
 let root;
-
-const STATE_INT = 393;
+let CFG;
 const TEST_WIN_ID = 79691844;
-// const TEST_WIN_ID = 19490153;
+
+module.exports = (passedCFG) => {
+  CFG = passedCFG;
+  return {
+    setState: wrapX11(setState),
+  };
+};
 
 // Get all windows via:
 // xprop -root|grep ^_NET_CLIENT_LIST
 
-x11.createClient(function (err, display) {
-  X = display.client;
-  root = display.screen[0].root;
+function wrapX11(fn) {
+  return function () {
+    const args = arguments;
+    const that = this;
 
-  X.require('render', function (err, Render) {
-    X.Render = Render;
+    return initX11()
+      .then(() => {
+        const mainFnResult = fn.apply(that, args);
+        if (mainFnResult.then) {
+          mainFnResult
+            .then(function () {
+              X.terminate();
+              return Promise.resolve(...arguments);
+            });
+        } else {
+          X.terminate();
+        }
+        return mainFnResult;
+      });
+  };
+}
 
-    //X.MoveWindow(TEST_WIN_ID, -50, -50);
-    //X.MoveResizeWindow(TEST_WIN_ID, -50, -50, 800, 800);
+const testFn = wrapX11(setState);
 
-    X.GetProperty(0, TEST_WIN_ID, X.atoms.WM_CLASS, X.atoms.STRING, 0, 10000000, (err, prop) => {
-      console.log('HERE', prop.data, prop.data.toString());
-    });
-
-    //X.GetWindowAttributes(TEST_WIN_ID, function (err, res) {
-    //  console.log(err, res);
-    //});
-    X.GetGeometry(TEST_WIN_ID, (err, res) => {
-      console.log(err, res);
-    });
-    //X.QueryTree(TEST_WIN_ID, true, (err, res) => {
-    //  console.log(err, res);
-    //})
-
-    //getProperty(X, TEST_WIN_ID, 'WM_CLASS', 'STRING', (err, res) => {
-    //  if (!err) {
-    //    console.log(res);
-    //    const newRes = decodeBuffer(res);
-    //    console.log(newRes, 'ASD');
-    //  }
-    //});
-    //
-
-    getProperty(X, TEST_WIN_ID, '_NET_WM_STATE', (err, res) => {
-      if (!err) {
-        const newRes = decodeBuffer(res);
-        console.log(newRes, 'ASD');
-      } else {
-        console.log(err);
-      }
-    });
-
-    //setState(TEST_WIN_ID, 'remove', ['_NET_WM_STATE_MAXIMIZED_VERT', '_NET_WM_STATE_MAXIMIZED_HORZ', '_NET_WM_STATE_FULLSCREEN']);
-    //setState(TEST_WIN_ID, 'remove', ['_NET_WM_STATE_MAXIMIZED_VERT', '_NET_WM_STATE_MAXIMIZED_HORZ', '_NET_WM_STATE_FULLSCREEN', '_NET_WM_STATE_ABOVE']);
-    setState(TEST_WIN_ID, 'remove', ['_NET_WM_STATE_MAXIMIZED_VERT']);
+testFn(TEST_WIN_ID, 'remove', ['_NET_WM_STATE_MAXIMIZED_VERT', '_NET_WM_STATE_MAXIMIZED_HORZ', '_NET_WM_STATE_FULLSCREEN'])
+  .then((res) => {
+    console.log(res);
   });
-}).on('error', function (err) {
-  console.error(err);
-}).on('event', function (ev) {
-  console.log(ev);
-});
 
-function decodeBuffer(input) {
-  function decode(bufferToDecode) {
-    if (Buffer.isBuffer(bufferToDecode)) {
-      return bufferToDecode.toString();
-    } else {
-      return bufferToDecode;
-    }
-  }
-
-  if (Array.isArray(input)) {
-    const parsedArray = [];
-    input.forEach((entry) => {
-      parsedArray.push(decode(entry));
+function initX11() {
+  return new Promise((fulfill, reject) => {
+    x11.createClient((err, display) => {
+      if (err) {
+        reject(err);
+      } else {
+        X = display.client;
+        root = display.screen[0].root;
+        fulfill();
+      }
+    }).on('error', (err) => {
+      console.error(err);
     });
-    return parsedArray;
-  } else {
-    return decode(input);
-  }
+  });
 }
 
 function getAtoms(list, cb) {
@@ -121,7 +99,7 @@ function setState(wid, actionP, props) {
     add: 1,
     toggle: 2,
   };
-  const data = new Buffer(48);
+  const data = new Buffer(32);
   const action = actions[actionP];
   let atomsList = [];
 
@@ -133,19 +111,73 @@ function setState(wid, actionP, props) {
   atomsList.push(type);
   atomsList = atomsList.concat(props);
 
-  getAtoms(atomsList, (err, atoms) => {
-    if (err) {
-      throw err;
-    }
+  return new Promise((fulfill, reject) => {
+    getAtoms(atomsList, (err, atoms) => {
+      if (err) {
+        reject(err);
+        throw err;
+      } else {
+        data.writeUInt32LE(atoms[type], offsetCounter());
+        data.writeUInt32LE(action, offsetCounter());
+        props.forEach((prop) => {
+          data.writeUInt32LE(atoms[prop], offsetCounter());
+        });
+        let sourceIndication = 1;
+        data.writeUInt32LE(sourceIndication, offsetCounter());
 
-    data.writeUInt32LE(atoms[type], offsetCounter());
-    data.writeUInt32LE(action, offsetCounter());
-    props.forEach((prop) => {
-      data.writeUInt32LE(atoms[prop], offsetCounter());
+        X.SendEvent(root, 0, x11.eventMask.SubstructureRedirect, data);
+        fulfill();
+      }
     });
-    let sourceIndication = 1;
-    data.writeUInt32LE(sourceIndication, bitCounter());
-
-    X.SendEvent(root, 0, x11.eventMask.SubstructureRedirect, data);
   });
 }
+
+//X.require('render', function (err, Render) {
+//  X.Render = Render;
+
+//X.MoveWindow(TEST_WIN_ID, -50, -50);
+//X.MoveResizeWindow(TEST_WIN_ID, -50, -50, 800, 800);
+
+//X.GetProperty(0, TEST_WIN_ID, X.atoms.WM_CLASS, X.atoms.STRING, 0, 10000000, (err, prop) => {
+//  console.log('HERE', prop.data, prop.data.toString());
+//});
+
+//X.GetWindowAttributes(TEST_WIN_ID, function (err, res) {
+//  console.log(err, res);
+//});
+//X.GetGeometry(TEST_WIN_ID, (err, res) => {
+//  console.log(err, res);
+//});
+//X.QueryTree(TEST_WIN_ID, true, (err, res) => {
+//  console.log(err, res);
+//})
+
+//getProperty(X, TEST_WIN_ID, 'WM_CLASS', 'STRING', (err, res) => {
+//  if (!err) {
+//    console.log(res);
+//    const newRes = decodeBuffer(res);
+//    console.log(newRes, 'ASD');
+//  }
+//});
+//
+
+//
+//function decodeBuffer(input) {
+//  function decode(bufferToDecode) {
+//    if (Buffer.isBuffer(bufferToDecode)) {
+//      return bufferToDecode.toString();
+//    } else {
+//      return bufferToDecode;
+//    }
+//  }
+//
+//  if (Array.isArray(input)) {
+//    const parsedArray = [];
+//    input.forEach((entry) => {
+//      parsedArray.push(decode(entry));
+//    });
+//    return parsedArray;
+//  } else {
+//    return decode(input);
+//  }
+//}
