@@ -68,7 +68,6 @@ function getActiveWindowList() {
       .then((windowList) => {
         const promises = [];
         windowList.forEach((win) => {
-          console.log(win);
           const promise = getWindowGeometry(win.windowId)
             .then((geo) => {
               for (let prop in geo) {
@@ -76,6 +75,11 @@ function getActiveWindowList() {
                   win[prop] = geo[prop];
                 }
               }
+
+              // TODO order that adding of all those different properties a little better
+              // add missing static properties
+              win.simpleName = parseSimpleWindowName(win.wmClassName);
+              win.executableFile = parseExecutableFileFromWmClassName(win.wmClassName);
             });
 
           promises.push(promise);
@@ -83,10 +87,28 @@ function getActiveWindowList() {
 
         Promise.all(promises)
           .then(() => {
-            console.log(windowList);
             fulfill(windowList);
           })
           .catch(reject);
       });
   });
+}
+
+function parseExecutableFileFromWmClassName(wmClassName) {
+  const executableFile = CFG.WM_CLASS_AND_EXECUTABLE_FILE_MAP[wmClassName];
+  if (executableFile) {
+    return executableFile;
+  } else {
+    const splitValues = wmClassName.split('.');
+    return splitValues[0] + '.desktop';
+  }
+}
+
+function parseSimpleWindowName(wmClassName) {
+  const splitValues = wmClassName.split('.');
+  if (splitValues[1]) {
+    return splitValues[1];
+  } else {
+    return wmClassName;
+  }
 }
