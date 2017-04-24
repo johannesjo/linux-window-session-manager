@@ -15,7 +15,7 @@ linux-window-session-manager
 
 ### Saving a session:
 ```
- # save the current session to ~/.lwsm/sessionData/DEFAULT.json
+# save the current session to ~/.lwsm/sessionData/DEFAULT.json
 lwsm save
 
 # save the current session to ~/.lwsm/sessionData/my-session.json
@@ -26,19 +26,19 @@ Note that the session are stored for the specific display combination, you're cu
 
 ### Restoring a session:
 ```
- # restore the session from ~/.lwsm/sessionData/DEFAULT.json
+# restore the session from ~/.lwsm/sessionData/DEFAULT.json
 lwsm restore
 
 # restore the session from ~/.lwsm/sessionData/my-session.json
 lwsm restore my-session   
 
- # gracefully close all running apps before starting the session
+# gracefully close all running apps before starting the session
 lwsm restore --closeAllOpenWindows
 ```
 
 ## Known Quirks
 In order to resize and move the windows the X window manager is used. Unfortunately there are existing some bugs:  
-* Windows moved to the very left of the screen will always be off by some pixels
+* Windows moved to the very left of the screen will always be off by some pixels in Unity
 * Sometimes a window can't be restored properly any more. In those cases it helps to close the window and restart the application. 
 
 ## ❤ contribute ❤
