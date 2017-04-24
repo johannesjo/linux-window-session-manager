@@ -6,12 +6,16 @@
   "bin": {
     "lwsm": "cmd.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/johannesjo/linux-window-session-manager.git"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Johannes Millan <contact@super-productivity.com> (http://super-productivity.com)",
+  "license": "MIT",
   "dependencies": {
     "jfs": "^0.2.6",
     "promise-waterfall": "^0.1.0",
