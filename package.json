@@ -2,7 +2,7 @@
   "name": "linux-window-session-manager",
   "version": "2.0.0",
   "description": "Window session manager for linux",
-  "main": "index.js",
+  "main": "lib/index.js",
   "bin": {
     "lwsm": "cmd.js"
   },

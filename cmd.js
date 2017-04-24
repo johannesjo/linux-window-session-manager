@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 'use strict';
-const base = require('./index');
+const base = require('./lib/index');
 const prompt = require('prompt');
 
 function catchInputHandlerErr(err) {
