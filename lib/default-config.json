@@ -30,7 +30,7 @@
   ],
   "CMD": {
     "LOCATE": "locate",
-    "GET_DISPLAY_ID": "xrandr --query | grep '\\bconnected\\b'",
+    "GET_DISPLAY_ID": "xrandr --query | grep '[^s]connected '",
     "XPROP_ID": "xprop -id"
   }
 }
