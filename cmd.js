@@ -20,7 +20,7 @@ const savePrompts = {
       }
 
       if (error) {
-        if (stdout) {
+        if (stdout && stdout.split) {
           askForVal(stdout.split('\n'));
         } else {
           askForVal();
