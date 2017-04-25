@@ -25,7 +25,7 @@ const savePrompts = {
         } else {
           askForVal();
         }
-      } else {
+      } else if (stdout && stdout.split) {
         const displayEntries = stdout.split('\n');
         let displayStr = '';
         for (let i = 0; i < displayEntries.length; i++) {
@@ -35,6 +35,8 @@ const savePrompts = {
         }
 
         askForVal(displayEntries);
+      } else {
+        askForVal();
       }
     }).catch(catchInputHandlerErr);
   }
