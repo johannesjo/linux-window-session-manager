@@ -12,14 +12,14 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js"
+    "start": "node index.js",
+    "buildBin": "find ./node_modules/x11 -type f -exec sed -i 's/req_proxy\\.arguments/arguments/g' {} + && nexe"
   },
   "author": "Johannes Millan <contact@super-productivity.com> (http://super-productivity.com)",
   "license": "MIT",
   "dependencies": {
     "jfs": "^0.2.6",
     "promise-waterfall": "^0.1.0",
-    "prompt": "^1.0.0",
     "x11": "^2.2.1"
   },
   "nexe": {
@@ -29,7 +29,6 @@
     "runtime": {
       "framework": "node",
       "version": "6.9.2",
-      "js-flags": "--use_strict",
       "ignoreFlags": true
     }
   }

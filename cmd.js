@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 'use strict';
 const base = require('./lib/index');
-const prompt = require('prompt');
 
 function catchInputHandlerErr(err) {
   console.error('Input Handler Error: ', err);
