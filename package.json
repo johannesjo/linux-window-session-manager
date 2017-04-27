@@ -21,5 +21,16 @@
     "promise-waterfall": "^0.1.0",
     "prompt": "^1.0.0",
     "x11": "^2.2.1"
+  },
+  "nexe": {
+    "input": "./cmd.js",
+    "output": "./out/lwsm^$",
+    "temp": ".tmp",
+    "runtime": {
+      "framework": "node",
+      "version": "6.9.2",
+      "js-flags": "--use_strict",
+      "ignoreFlags": true
+    }
   }
 }
