@@ -42,4 +42,4 @@ In order to resize and move the windows the X window manager is used. Unfortunat
 * Sometimes a window can't be restored properly any more. In those cases it helps to close the window and restart the application. 
 
 ## ❤ contribute ❤
-I'm happy for any reported [issue or feature request](https://github.com/johannesjo/ng-fab-form/issues).
+I'm happy for any reported [issue or feature request](https://github.com/johannesjo/linux-window-session-manager/issues).
