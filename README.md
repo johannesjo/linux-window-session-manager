@@ -7,8 +7,7 @@ There's also a [companion tool in form of an indicator applet](https://github.co
  
 ## Installation
 ```
-npm install -g
-linux-window-session-manager
+npm install -g linux-window-session-manager
 ```
  
 ## CMD Usage
