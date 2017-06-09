@@ -20,7 +20,8 @@
   "dependencies": {
     "jfs": "^0.2.6",
     "promise-waterfall": "^0.1.0",
-    "x11": "^2.2.1"
+    "x11": "^2.2.1",
+    "omelette": "nkovshov/omelette"
   },
   "nexe": {
     "input": "./cmd.js",

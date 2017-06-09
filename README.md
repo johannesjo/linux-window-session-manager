@@ -35,6 +35,20 @@ lwsm restore my-session
 lwsm restore --closeAllOpenWindows
 ```
 
+
+### Command-line completion:
+```
+# Automatically install command-line completion
+lwsm --setupCompletion
+# Generate command-line completion code for bash and zsh shells for manual installation
+lwsm --completion
+# Generate command-line completion code for fish shell for manual installation
+lwsm --completion-fish
+```
+Command-line completion implemented by [omelette](https://github.com/f/omelette), so you may refer it's README to check file where completion code will be added on automatic install.
+Restart your shell after automatic install to apply changes.
+
+
 ## Known Quirks
 In order to resize and move the windows the X window manager is used. Unfortunately it has some bugs:  
 * Windows moved to the very left of the screen will always be off by some pixels in Unity
