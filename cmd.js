@@ -1,6 +1,21 @@
 #!/usr/bin/env node
 'use strict';
 const base = require('./lib/index');
+const omelette = require('omelette');
+
+// There should be no output to stdin until completion.init()
+const sessionList = Object.keys(base.getSessions());
+
+let completion = omelette('lwsm');
+completion.tree({
+  save: sessionList,
+  restore: sessionList
+});
+completion.init();
+
+if (~process.argv.indexOf('--setupCompletion')) {
+  completion.setupShellInitFile()
+}
 
 function catchInputHandlerErr(err) {
   console.error('Input Handler Error: ', err);
