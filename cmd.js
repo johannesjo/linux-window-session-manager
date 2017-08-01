@@ -18,7 +18,7 @@ if (~process.argv.indexOf('--setupCompletion')) {
 }
 
 function catchInputHandlerErr(err) {
-  console.error('Input Handler Error: ', err);
+  console.error('Input Handler Error: ', err, err.stack);
 }
 
 const savePrompts = {
@@ -29,7 +29,7 @@ const savePrompts = {
         if (displayEntries && displayEntries[0]) {
           fulfill(displayEntries[0]);
         } else {
-          reject('No input for desktop file path');
+          reject('No input for desktop file path for window "' + win.wmClassName + '". Please fix this manually in config file for this session in ~/.lwsm/session-name.json');
         }
       }
 
