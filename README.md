@@ -9,6 +9,8 @@ There's also a [companion tool in form of an indicator applet](https://github.co
 ```
 npm install -g linux-window-session-manager
 ```
+
+For older distros, you also might need to install the `locate` command via `sudo apt-get install mlocate`.
  
 ## CMD Usage
 
@@ -34,6 +36,9 @@ lwsm restore my-session
 # gracefully close all running apps before starting the session
 lwsm restore --closeAllOpenWindows
 ```
+
+### Adjusting the configuration
+You can manually edit the config file present at `~/.lwsm/config.json` and the session files in `~/.lwsm/sessionData/[sessionName].json`.
 
 
 ### Command-line completion:
