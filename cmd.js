@@ -27,7 +27,12 @@ const savePrompts = {
       function askForVal(displayEntries) {
         // autosave first entry for now
         if (displayEntries && displayEntries[0]) {
-          fulfill(displayEntries[0]);
+          // take appimagekit links into account
+          if (displayEntries[0].match(/appimagekit/) && displayEntries[1]) {
+            fulfill(displayEntries[1]);
+          } else {
+            fulfill(displayEntries[0]);
+          }
         } else {
           reject('No input for desktop file path for window "' + win.wmClassName + '". Please fix this manually in config file for this session in ~/.lwsm/session-name.json');
         }
