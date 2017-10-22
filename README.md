@@ -57,7 +57,8 @@ Restart your shell after automatic install to apply changes.
 ## Known Quirks
 In order to resize and move the windows the X window manager is used. Unfortunately it has some bugs:  
 * Windows moved to the very left of the screen will always be off by some pixels in Unity
-* Sometimes a window can't be restored properly any more. In those cases it helps to close the window and restart the application. 
+* Sometimes a window can't be restored properly any more. In those cases it helps to close the window and restart the application.
+* When you're using Wayland as display manager all gnome applications won't be saved or restored 
 
 ## ❤ contribute ❤
 I'm happy for any reported [issue or feature request](https://github.com/johannesjo/linux-window-session-manager/issues).
