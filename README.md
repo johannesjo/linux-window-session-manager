@@ -1,3 +1,5 @@
+[![npm version](https://badge.fury.io/js/linux-window-session-manager.svg)](https://badge.fury.io/js/linux-window-session-manager)
+
 # Linux Window Session Manager
 
 This is a library / command line tool that let's you save and reload your opened programs and the positions of their windows. 
