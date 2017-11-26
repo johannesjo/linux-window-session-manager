@@ -18,10 +18,11 @@
   "author": "Johannes Millan <contact@super-productivity.com> (http://super-productivity.com)",
   "license": "MIT",
   "dependencies": {
+    "findup-sync": "^2.0.0",
     "jfs": "^0.2.6",
+    "omelette": "nkovshov/omelette",
     "promise-waterfall": "^0.1.0",
-    "x11": "^2.2.1",
-    "omelette": "nkovshov/omelette"
+    "x11": "^2.2.1"
   },
   "nexe": {
     "input": "./cmd.js",
