@@ -20,7 +20,7 @@
   "dependencies": {
     "findup-sync": "^2.0.0",
     "jfs": "^0.2.6",
-    "omelette": "nkovshov/omelette",
+    "omelette": "^0.4.5",
     "promise-waterfall": "^0.1.0",
     "x11": "^2.2.1"
   },
