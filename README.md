@@ -8,6 +8,8 @@ Supports Unity and Gnome Desktops and possibly all other compositing window mana
 There's also a [companion tool in form of an indicator applet](https://github.com/johannesjo/linux-window-session-manger-indicator) and a [gnome-shell-extension](https://github.com/johannesjo/gnome-shell-extension-window-session-manager) if you like such things but this package can also be used standalone.
  
 ## Installation
+NodeJs needs to be installed.
+
 ```
 npm install -g linux-window-session-manager
 ```
