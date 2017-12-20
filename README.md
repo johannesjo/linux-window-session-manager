@@ -68,9 +68,9 @@ In order to resize and move the windows the X window manager is used. Unfortunat
 In some cases lwsm might be unable to guess the right path for the desktop file of an application. There are a couple of things, that you can do:
 
 You can locate the executable or desktop file manually for the application  which isn't started (e.g. via the locate command), and add it to `~/.lwsm/{currentSessionName}.json`. 
-If you want to persist that mapping you might also want to open `~/.lwsm/config.json`  and edit the `WM_CLASS_AND_EXECUTABLE_FILE_MAP` property. 
+If you want to persist that mapping you might also want to open `~/.lwsm/config.json`  and edit the `WM_CLASS_AND_EXECUTABLE_FILE_MAP` property. You can find out which property name to use by executing `xprop` and clicking on an open window of the application. Look for `WM_CLASS(STRING)`. 
 
-If there is a desktop file for the application you might want to add it's location to the `DESKTOP_FILE_LOCATIONS` property in `~/.lwsm/config.json` to make sure this folder is also searched the next lwsm tries to guess an desktop file path. You can find out which property name to use by executing `xprop` and clicking on an open window of the application. Look for `WM_CLASS(STRING)`.
+If there is a desktop file for the application you might want to add it's location to the `DESKTOP_FILE_LOCATIONS` property in `~/.lwsm/config.json` to make sure this folder is also searched the next lwsm tries to guess an desktop file path.
 
 If you want lwsm to ignore the application, you can add it to the ignore list in `~/.lwsm/config.json` which is located under the `WM_CLASS_EXCLUSIONS` property.
 
