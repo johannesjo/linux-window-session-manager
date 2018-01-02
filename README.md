@@ -14,7 +14,12 @@ NodeJs needs to be installed.
 npm install -g linux-window-session-manager
 ```
 
-For older distros, you also might need to install the `locate` command via `sudo apt-get install mlocate`.
+For older distros, you also might need to install the `locate` command via `sudo apt-get install mlocate`. 
+ 
+## Updating
+```
+npm update -g linux-window-session-manager
+```
  
 ## CMD Usage
 
