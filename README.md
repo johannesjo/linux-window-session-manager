@@ -71,14 +71,21 @@ In order to resize and move the windows the X window manager is used. Unfortunat
 * Sometimes a window can't be restored properly any more. In those cases it helps to close the window and restart the application.
 * When you're using Wayland as display manager all gnome applications won't be saved or restored. Only XWayland applications will work.
 
-## Troubleshooting
-In some cases lwsm might be unable to guess the right path for the desktop file of an application. There are a couple of things, that you can do:
+## Troubleshooting & Issues
+**please read this before opening up an issue!!!**
 
-You can locate the executable or desktop file manually for the application  which isn't started (e.g. via the locate command), and add it to `~/.lwsm/{currentSessionName}.json`. 
+### Application are not started/lwsm doesn't work 
+
+Related error message: `undefined findDesktopFile cant find file`
+
+lwsm needs to guess the right executable path for your applications. In some cases lwsm might be unable to do so. There are a couple of things, that you can do:
+
+1. You can locate the executable or desktop file manually for the application  which isn't started (e.g. via the locate command), and add it to `~/.lwsm/{currentSessionName}.json`. 
 If you want to persist that mapping you might also want to open `~/.lwsm/config.json`  and edit the `WM_CLASS_AND_EXECUTABLE_FILE_MAP` property. You can find out which property name to use by executing `xprop` and clicking on an open window of the application. Look for `WM_CLASS(STRING)`. 
 
-If there is a desktop file for the application you might want to add it's location to the `DESKTOP_FILE_LOCATIONS` property in `~/.lwsm/config.json` to make sure this folder is also searched the next lwsm tries to guess an desktop file path.
+2. If the desktop files are consistently stored in a folder not mapped by lwsm you might want to add it's location to the `DESKTOP_FILE_LOCATIONS` property in `~/.lwsm/config.json` to make sure this folder is also searched the next lwsm tries to guess an desktop file path.
 
+### Ignoring applications
 If you want lwsm to ignore the application, you can add it to the ignore list in `~/.lwsm/config.json` which is located under the `WM_CLASS_EXCLUSIONS` property.
 
 If everything fails [please open up an issue](https://github.com/johannesjo/linux-window-session-manager/issues).
