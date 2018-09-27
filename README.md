@@ -81,7 +81,12 @@ Related error message: `undefined findDesktopFile cant find file`
 lwsm needs to guess the right executable path for your applications. In some cases lwsm might be unable to do so. There are a couple of things, that you can do:
 
 1. You can locate the executable or desktop file manually for the application  which isn't started (e.g. via the locate command), and add it to `~/.lwsm/{currentSessionName}.json`. 
-If you want to persist that mapping you might also want to open `~/.lwsm/config.json`  and edit the `WM_CLASS_AND_EXECUTABLE_FILE_MAP` property. You can find out which property name to use by executing `xprop` and clicking on an open window of the application. Look for `WM_CLASS(STRING)`. 
+If you want to persist that mapping you might also want to open `~/.lwsm/config.json`  and edit the `WM_CLASS_AND_EXECUTABLE_FILE_MAP` property. You can find out which property name to use by executing `xprop` and clicking on an open window of the application. Look for `WM_CLASS(STRING)` (Or just execute `xprop | grep "WM_CLASS(STRING)"`). For finding the desktop file the `locate` command is usful (e.g.: `locate google-chrome.desktop`).
+```
+# example  entry in ~/.lwsm/config.json:
+# WM_CLASS(STRING)             Desktop file name
+"google-chrome.Google-chrome": "google-chrome.desktop",
+```
 
 2. If the desktop files are consistently stored in a folder not mapped by lwsm you might want to add it's location to the `DESKTOP_FILE_LOCATIONS` property in `~/.lwsm/config.json` to make sure this folder is also searched the next lwsm tries to guess an desktop file path. If you think the path should be there per default [please open up an issue](https://github.com/johannesjo/linux-window-session-manager/issues).
 
@@ -89,6 +94,9 @@ If you want to persist that mapping you might also want to open `~/.lwsm/config.
 If you want lwsm to ignore the application, you can add it to the ignore list in `~/.lwsm/config.json` which is located under the `WM_CLASS_EXCLUSIONS` property.
 
 If everything fails [please open up an issue](https://github.com/johannesjo/linux-window-session-manager/issues).
+
+### Gnome Terminal or other Gnome applications not restored
+Chances are you're running Wayland as a display manager. I'd recommend [switching back to Xorg](https://askubuntu.com/questions/961304/how-do-you-switch-from-wayland-back-to-xorg-in-ubuntu-17-10).
 
 ## ❤ contribute ❤
 I'm happy for any reported [issue or feature request](https://github.com/johannesjo/linux-window-session-manager/issues).
