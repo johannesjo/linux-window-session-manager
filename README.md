@@ -48,9 +48,13 @@ lwsm restore my-session
 lwsm restore --closeAllOpenWindows
 ```
 
-### Adjusting the configuration
-You can manually edit the config file present at `~/.lwsm/config.json` and the session files in `~/.lwsm/sessionData/[sessionName].json`.
+### List Saved Sessions:
+```
+lwsm list
+```
 
+### Adjusting the configuration:
+You can manually edit the config file present at `~/.lwsm/config.json` and the session files in `~/.lwsm/sessionData/[sessionName].json`.
 
 ### Command-line completion:
 ```

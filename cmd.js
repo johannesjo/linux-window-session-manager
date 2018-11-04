@@ -103,13 +103,18 @@ if (action === 'save') {
   base.removeSession(sessionName);
 } else if (action === 'resetCfg') {
   base.resetCfg();
+} else if (action === 'list') {
+  base.listSessions();
 } else {
   console.log(`
   Usage:\n
   Saving your current windows:
-  lwsm save [OPTIONAL_SESSION_ID] 
+  lwsm save [OPTIONAL_SESSION_ID]
   
   Restoring a session:
   lwsm restore [OPTIONAL_SESSION_ID] [--closeAllOpenWindows]
+
+  List all saved sessions:
+  lwsm list
   `);
 }
