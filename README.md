@@ -48,9 +48,14 @@ lwsm restore my-session
 lwsm restore --closeAllOpenWindows
 ```
 
-### List Saved Sessions:
+### List saved sessions:
 ```
 lwsm list
+```
+
+### Rename a saved session:
+```
+lwsm rename oldName newName
 ```
 
 ### Adjusting the configuration:
