@@ -105,6 +105,8 @@ if (action === 'save') {
   base.resetCfg();
 } else if (action === 'list') {
   base.listSessions();
+} else if (action === 'rename' && sessionName && (process.argv[4] && !process.argv[4].match(/^--/))) {
+  base.renameSession(sessionName,process.argv[4]);
 } else {
   console.log(`
   Usage:\n
@@ -116,5 +118,8 @@ if (action === 'save') {
 
   List all saved sessions:
   lwsm list
+
+  Renaming a session:
+  lwsm save [OLD_NAME] [NEW_NAME]
   `);
 }
