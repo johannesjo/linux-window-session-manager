@@ -61,7 +61,7 @@ const savePrompts = {
             fulfill(displayEntries[0]);
           }
         } else {
-          reject('No input for desktop file path for window "' + win.wmClassName + '". Please fix this manually in config file for this session in ~/.lwsm/{currentSessionName}.json\n'+createWhatTodoTxt(win));
+          reject('No input for desktop file path for window "' + win.wmClassName + '". Please fix this manually in config file for this session in ~/.lwsm/{currentSessionName}.json\n' + createWhatTodoTxt(win));
         }
       }
 
