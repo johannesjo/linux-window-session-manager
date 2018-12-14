@@ -23,7 +23,7 @@ the next LWSM tries to guess an desktop file path.
 If your applications tend to have a prefix or suffix, you can also 
 use DESKTOP_FILE_PATTERNS.
 Adding "/usr/share/applications/org.gnome.{fileName}" for example 
-will search for desktop files which are prefixed with org.gnome
+will search for desktop files which are prefixed with "org.gnome."
 inside "/usr/share/applications".
 
 If you want LWSM to ignore the application, you can add 
