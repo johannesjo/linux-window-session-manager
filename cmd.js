@@ -6,7 +6,7 @@ const omelette = require('omelette');
 const createWhatTodoTxt = (win) => `
 LWSM was unable to guess the location of your executable/desktop file.
  
-There are two things, that you can do now: 
+There are 3 things, that you can do now: 
 
 Either you can locate the executable or desktop file manually for 
 the application  which isn't started (e.g. via the locate command), 
@@ -19,6 +19,12 @@ If there is a desktop file for the application you might want
 to add it's location to the DESKTOP_FILE_LOCATIONS property 
 in ~/.lwsm/config.json to make sure this folder is also searched
 the next LWSM tries to guess an desktop file path.
+
+If your applications tend to have a prefix or suffix, you can also 
+use DESKTOP_FILE_PATTERNS.
+Adding "/usr/share/applications/org.gnome.{fileName}" for example 
+will search for desktop files which are prefixed with org.gnome
+inside "/usr/share/applications".
 
 If you want LWSM to ignore the application, you can add 
 the application to the ignore list in ~/.lwsm/config.json which 
