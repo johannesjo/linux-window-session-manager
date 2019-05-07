@@ -5,7 +5,7 @@
 This is a library / command line tool that let's you save and reload your opened programs and the positions of their windows. 
 Supports Unity and Gnome Desktops and possibly all other compositing window managers using X (including XWayland).
  
-There's also a [companion tool in form of an indicator applet](https://github.com/johannesjo/linux-window-session-manger-indicator) and a [gnome-shell-extension](https://github.com/johannesjo/gnome-shell-extension-window-session-manager) if you like such things but this package can also be used standalone.
+There's also a [companion tool in form of an indicator applet](https://github.com/johannesjo/linux-window-session-manger-indicator), a [gnome-shell-extension](https://github.com/johannesjo/gnome-shell-extension-window-session-manager) and a [Ulauncher extension](https://github.com/kpost/ulauncher-lwsm) if you like such things but this package can also be used standalone.
  
 ## Installation
 NodeJs needs to be installed.
