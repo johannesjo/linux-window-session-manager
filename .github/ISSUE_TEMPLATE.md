@@ -1,5 +1,8 @@
 <!--- Your issue may already be reported!
-Please search the issues before creating one. -->
+Please search the issues before creating one. 
+Also please have a look at the troubleshooting section:
+https://github.com/johannesjo/linux-window-session-manager#troubleshooting--issues
+-->
 
 ## Your Environment
 <!--- Include as many relevant details about the environment you experienced the bug in -->
