@@ -18,7 +18,7 @@
   "author": "Johannes Millan <contact@super-productivity.com> (http://super-productivity.com)",
   "license": "MIT",
   "dependencies": {
-    "findup-sync": "^3.0.0",
+    "findup-sync": "^4.0.0",
     "jfs": "^0.2.6",
     "omelette": "^0.4.5",
     "promise-waterfall": "^0.1.0",

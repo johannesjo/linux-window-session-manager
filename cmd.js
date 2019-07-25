@@ -20,12 +20,6 @@ to add it's location to the DESKTOP_FILE_LOCATIONS property
 in ~/.lwsm/config.json to make sure this folder is also searched
 the next LWSM tries to guess an desktop file path.
 
-If your applications tend to have a prefix or suffix, you can also 
-use DESKTOP_FILE_PATTERNS.
-Adding "/usr/share/applications/org.gnome.{fileName}" for example 
-will search for desktop files which are prefixed with "org.gnome."
-inside "/usr/share/applications".
-
 If you want LWSM to ignore the application, you can add 
 the application to the ignore list in ~/.lwsm/config.json which 
 is located under the WM_CLASS_EXCLUSIONS property.
