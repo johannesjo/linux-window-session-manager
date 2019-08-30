@@ -2,6 +2,7 @@
 
 <p align="center">
  <a href="https://badge.fury.io/js/linux-window-session-manager"><img src="https://badge.fury.io/js/linux-window-session-manager.svg"></a>
+ <a href="https://lbesson.mit-license.org"><img alt="MIT license" src="https://img.shields.io/badge/License-MIT-blue.svg"></a>
 </p>
 
 This is a library / command line tool that let's you save and reload your opened programs and the positions of their windows. 
