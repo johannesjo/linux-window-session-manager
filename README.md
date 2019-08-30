@@ -1,6 +1,8 @@
-[![npm version](https://badge.fury.io/js/linux-window-session-manager.svg)](https://badge.fury.io/js/linux-window-session-manager)
+<p align="center"><img src="logo.png"></p>
 
-# Linux Window Session Manager
+<p align="center">
+ <a href="https://badge.fury.io/js/linux-window-session-manager"><img src="https://badge.fury.io/js/linux-window-session-manager.svg"></a>
+</p>
 
 This is a library / command line tool that let's you save and reload your opened programs and the positions of their windows. 
 Supports Unity and Gnome Desktops and possibly all other compositing window managers using X (including XWayland).
