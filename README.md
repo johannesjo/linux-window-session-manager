@@ -82,6 +82,7 @@ In order to resize and move the windows the X window manager is used. Unfortunat
 * Windows moved to the very left of the screen will always be off by some pixels in Unity
 * Sometimes a window can't be restored properly any more. In those cases it helps to close the window and restart the application.
 * When you're using Wayland as display manager all gnome applications won't be saved or restored. Only XWayland applications will work.
+  *  You easily [switch back to Xorg](https://itsfoss.com/switch-xorg-wayland/)
 
 ## Troubleshooting & Issues
 **!!! please read this before opening up an issue !!!**
