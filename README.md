@@ -86,6 +86,8 @@ In order to resize and move the windows the X window manager is used. Unfortunat
 ## Troubleshooting & Issues
 **!!! please read this before opening up an issue !!!**
 
+**If you're using Wayland, have a look at above at the known qurks section**
+
 ### Application are not started/lwsm doesn't work 
 
 Related error message: `undefined findDesktopFile cant find file`
