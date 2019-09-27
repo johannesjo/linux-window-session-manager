@@ -9,10 +9,10 @@ import {log} from './log';
 const Store = require('jfs');
 
 
-CFG();
+CFG;
 
 // create data store
-const db = new Store(SESSION_DATA_DIR, {pretty: CFG().SAVE_SESSION_IN_PRETTY_FORMAT});
+const db = new Store(SESSION_DATA_DIR, {pretty: CFG.SAVE_SESSION_IN_PRETTY_FORMAT});
 
 
 // setup meta wrapper
@@ -31,7 +31,7 @@ export default {
 
     getConnectedDisplaysId,
     resetCfg: () => {
-        const configFilePath = CFG().DATA_DIR + '/config.json';
+        const configFilePath = CFG.DATA_DIR + '/config.json';
         if (fs.existsSync(configFilePath)) {
             fs.unlinkSync(configFilePath);
         } else {
@@ -39,7 +39,7 @@ export default {
         }
     },
     getCfg: () => {
-        return CFG();
+        return CFG;
     },
     getDb: () => {
         return db;
@@ -206,7 +206,7 @@ function restoreSession(sessionName, isCloseAllOpenWindows) {
 
 function removeSession(sessionName) {
     return new Promise((fulfill, reject) => {
-        fs.unlink(CFG().SESSION_DATA_DIR + '/' + sessionName + '.json', (error) => {
+        fs.unlink(CFG.SESSION_DATA_DIR + '/' + sessionName + '.json', (error) => {
             if (error) {
                 console.error(error);
                 reject(error);
@@ -245,9 +245,9 @@ function _waitForAllAppsToClose() {
             setTimeout(() => {
                 getActiveWindowListFlow()
                     .then((currentWindowList: any[]) => {
-                        totalTimeWaited += CFG().POLL_ALL_APPS_STARTED_INTERVAL;
+                        totalTimeWaited += CFG.POLL_ALL_APPS_STARTED_INTERVAL;
                         if (currentWindowList.length !== 0) {
-                            if (totalTimeWaited > CFG().POLL_ALL_MAX_TIMEOUT) {
+                            if (totalTimeWaited > CFG.POLL_ALL_MAX_TIMEOUT) {
                                 console.error('POLL_ALL_MAX_TIMEOUT reached');
                                 reject('POLL_ALL_MAX_TIMEOUT reached');
                             } else {
@@ -260,7 +260,7 @@ function _waitForAllAppsToClose() {
                     })
                     .catch(reject);
                 ;
-            }, CFG().POLL_ALL_APPS_STARTED_INTERVAL);
+            }, CFG.POLL_ALL_APPS_STARTED_INTERVAL);
         }
 
         // start once initially
@@ -284,9 +284,9 @@ function _waitForAllAppsToStart(savedWindowList) {
 
                 getActiveWindowListFlow()
                     .then((currentWindowList) => {
-                        totalTimeWaited += CFG().POLL_ALL_APPS_STARTED_INTERVAL;
+                        totalTimeWaited += CFG.POLL_ALL_APPS_STARTED_INTERVAL;
                         if (!_isAllAppsStarted(savedWindowList, currentWindowList)) {
-                            if (totalTimeWaited > CFG().POLL_ALL_MAX_TIMEOUT) {
+                            if (totalTimeWaited > CFG.POLL_ALL_MAX_TIMEOUT) {
                                 console.error('POLL_ALL_MAX_TIMEOUT reached');
                                 console.error('Unable to start the following apps', _getNotStartedApps(savedWindowList, currentWindowList));
                                 reject('POLL_ALL_MAX_TIMEOUT reached');
@@ -300,7 +300,7 @@ function _waitForAllAppsToStart(savedWindowList) {
                         }
                     })
                     .catch(reject);
-            }, CFG().POLL_ALL_APPS_STARTED_INTERVAL);
+            }, CFG.POLL_ALL_APPS_STARTED_INTERVAL);
         }
 
         // start once initially

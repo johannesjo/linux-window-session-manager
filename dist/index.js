@@ -139,32 +139,28 @@ var cfg;
 var CFG_DATA_DIR = _getUserHome() + '/.lwsm';
 var CFG_FILE_PATH = CFG_DATA_DIR + '/config.json';
 var SESSION_DATA_DIR = CFG_DATA_DIR + '/sessionData';
-var CFG = function () {
-    if (cfg) {
-        return cfg;
-    }
-    // INIT
-    // ------------
-    try {
-        // if config is already in place
-        cfg = JSON.parse(fs.readFileSync(CFG_FILE_PATH, 'utf8'));
-    }
-    catch (e) {
-        log('lwsm: no config file present or it contains invalid json. Creating new one...');
-        // if there is no config yet load default cfg and create files and dirs
-        cfg = DEFAULT_CFG;
-        // save executable paths to cfg
-        cfg.CMD_JSFILE_PATH = __dirname + '/../cmd.js';
-        cfg.JSFILE_INDEX_PATH = __dirname + '/index.js';
-        mkdirSync(CFG_DATA_DIR);
-        mkdirSync(SESSION_DATA_DIR);
-        // write config to user dir
-        fs.writeFileSync(CFG_FILE_PATH, JSON.stringify(cfg, null, 2), 'utf8');
-    }
-    // also make data dirs accessible to the outside
-    cfg.DATA_DIR = CFG_DATA_DIR;
-    cfg.SESSION_DATA_DIR = SESSION_DATA_DIR;
-};
+// INIT
+// ------------
+try {
+    // if config is already in place
+    cfg = JSON.parse(fs.readFileSync(CFG_FILE_PATH, 'utf8'));
+}
+catch (e) {
+    log('lwsm: no config file present or it contains invalid json. Creating new one...');
+    // if there is no config yet load default cfg and create files and dirs
+    cfg = DEFAULT_CFG;
+    // save executable paths to cfg
+    cfg.CMD_JSFILE_PATH = __dirname + '/../cmd.js';
+    cfg.JSFILE_INDEX_PATH = __dirname + '/index.js';
+    mkdirSync(CFG_DATA_DIR);
+    mkdirSync(SESSION_DATA_DIR);
+    // write config to user dir
+    fs.writeFileSync(CFG_FILE_PATH, JSON.stringify(cfg, null, 2), 'utf8');
+}
+// also make data dirs accessible to the outside
+cfg.DATA_DIR = CFG_DATA_DIR;
+cfg.SESSION_DATA_DIR = SESSION_DATA_DIR;
+var CFG = cfg;
 function _getUserHome() {
     return process.env[(process.platform === 'win32') ? 'USERPROFILE' : 'HOME'];
 }
@@ -223,7 +219,7 @@ function catchGenericErr(err) {
 // display
 // -------
 function getConnectedDisplaysId() {
-    var cmd = CFG().CMD.GET_DISPLAY_ID;
+    var cmd = CFG.CMD.GET_DISPLAY_ID;
     return new Promise(function (fulfill, reject) {
         child_process.exec(cmd, EXEC_OPTS, function (error, stdout, stderr) {
             if (error || stderr) {
@@ -259,7 +255,7 @@ function _parseConnectedDisplaysId(stdout) {
 // --------
 function readAndSetAdditionalMetaDataForWin(win) {
     return new Promise(function (fulfill, reject) {
-        child_process.exec(CFG().CMD.XPROP_ID + " " + win.windowId, EXEC_OPTS, function (error, stdout, stderr) {
+        child_process.exec(CFG.CMD.XPROP_ID + " " + win.windowId, EXEC_OPTS, function (error, stdout, stderr) {
             if (error || stderr) {
                 console.error(win, error, stderr);
                 reject(error || stderr);
@@ -272,10 +268,10 @@ function readAndSetAdditionalMetaDataForWin(win) {
                     // remove property name and "="
                     words.splice(0, 2);
                     var value = words.join(' ');
-                    var propertyNameFromMap = CFG().WM_META_MAP[propertyName];
+                    var propertyNameFromMap = CFG.WM_META_MAP[propertyName];
                     // parse wmClassName
                     if (propertyName === 'WM_CLASS(STRING)') {
-                        var propertyNameFromMap_1 = CFG().WM_META_MAP[propertyName];
+                        var propertyNameFromMap_1 = CFG.WM_META_MAP[propertyName];
                         var classNames = value.split(', ');
                         var className_1 = '';
                         classNames.forEach(function (state) {
@@ -298,7 +294,7 @@ function readAndSetAdditionalMetaDataForWin(win) {
                     // parse simple strings and integers
                     else if (propertyNameFromMap) {
                         // special handle number types
-                        if (CFG().WM_META_MAP_NUMBER_TYPES.indexOf(propertyName) > -1) {
+                        if (CFG.WM_META_MAP_NUMBER_TYPES.indexOf(propertyName) > -1) {
                             win[propertyNameFromMap] = parseInt(value, 10);
                         }
                         else {
@@ -393,7 +389,7 @@ function parseWindowIds(stdout) {
     return str.split(', ');
 }
 function isExcludedWmClassName(wmClassName) {
-    return CFG().WM_CLASS_EXCLUSIONS.indexOf(wmClassName) > -1;
+    return CFG.WM_CLASS_EXCLUSIONS.indexOf(wmClassName) > -1;
 }
 
 var x11 = require('x11');
@@ -587,7 +583,7 @@ function _sendX11ClientMessage(wid, eventName, eventProperties, optionalEventMas
                 data.writeUInt32LE(sourceIndication, offsetCounter());
                 X.SendEvent(root, 0, eventMask, data);
                 // we need a little time for the buffer to be processed
-                setTimeout(fulfill, CFG().GIVE_X11_TIME_TIMEOUT);
+                setTimeout(fulfill, CFG.GIVE_X11_TIME_TIMEOUT);
             }
         });
     }).catch(catchGenericErr$1);
@@ -611,7 +607,7 @@ function goToFirstWorkspace() {
 }
 function findDesktopFile(fileName) {
     return new Promise(function (fulfill, reject) {
-        var desktopFileLocations = CFG().DESKTOP_FILE_LOCATIONS || DEFAULT_DESKTOP_FILE_LOCATIONS;
+        var desktopFileLocations = CFG.DESKTOP_FILE_LOCATIONS || DEFAULT_DESKTOP_FILE_LOCATIONS;
         var patterns = [];
         var parentDirs = desktopFileLocations.map(function (parentDir) {
             return parentDir.replace('{home}', HOME_DIR);
@@ -741,7 +737,7 @@ function _addParsedExecutableFilesFromWmClassNames(windowList) {
 function _parseExecutableFileFromWmClassName(wmClassName) {
     return new Promise(function (fulfill, reject) {
         console.log(wmClassName);
-        var executableFileFromMap = CFG().WM_CLASS_AND_EXECUTABLE_FILE_MAP[wmClassName];
+        var executableFileFromMap = CFG.WM_CLASS_AND_EXECUTABLE_FILE_MAP[wmClassName];
         if (executableFileFromMap) {
             fulfill(executableFileFromMap);
         }
@@ -783,9 +779,8 @@ function _parseChromeAppDesktopFileName(fileName) {
 
 // import * as Store from 'jfs';
 var Store = require('jfs');
-CFG();
 // create data store
-var db = new Store(SESSION_DATA_DIR, { pretty: CFG().SAVE_SESSION_IN_PRETTY_FORMAT });
+var db = new Store(SESSION_DATA_DIR, { pretty: CFG.SAVE_SESSION_IN_PRETTY_FORMAT });
 // setup meta wrapper
 // EXPORT
 // ------
@@ -799,7 +794,7 @@ var index = {
     getX: getX,
     getConnectedDisplaysId: getConnectedDisplaysId,
     resetCfg: function () {
-        var configFilePath = CFG().DATA_DIR + '/config.json';
+        var configFilePath = CFG.DATA_DIR + '/config.json';
         if (fs.existsSync(configFilePath)) {
             fs.unlinkSync(configFilePath);
         }
@@ -808,7 +803,7 @@ var index = {
         }
     },
     getCfg: function () {
-        return CFG();
+        return CFG;
     },
     getDb: function () {
         return db;
@@ -962,7 +957,7 @@ function restoreSession(sessionName, isCloseAllOpenWindows) {
 }
 function removeSession(sessionName) {
     return new Promise(function (fulfill, reject) {
-        fs.unlink(CFG().SESSION_DATA_DIR + '/' + sessionName + '.json', function (error) {
+        fs.unlink(CFG.SESSION_DATA_DIR + '/' + sessionName + '.json', function (error) {
             if (error) {
                 console.error(error);
                 reject(error);
@@ -1000,9 +995,9 @@ function _waitForAllAppsToClose() {
             setTimeout(function () {
                 getActiveWindowListFlow()
                     .then(function (currentWindowList) {
-                    totalTimeWaited += CFG().POLL_ALL_APPS_STARTED_INTERVAL;
+                    totalTimeWaited += CFG.POLL_ALL_APPS_STARTED_INTERVAL;
                     if (currentWindowList.length !== 0) {
-                        if (totalTimeWaited > CFG().POLL_ALL_MAX_TIMEOUT) {
+                        if (totalTimeWaited > CFG.POLL_ALL_MAX_TIMEOUT) {
                             console.error('POLL_ALL_MAX_TIMEOUT reached');
                             reject('POLL_ALL_MAX_TIMEOUT reached');
                         }
@@ -1016,7 +1011,7 @@ function _waitForAllAppsToClose() {
                     }
                 })
                     .catch(reject);
-            }, CFG().POLL_ALL_APPS_STARTED_INTERVAL);
+            }, CFG.POLL_ALL_APPS_STARTED_INTERVAL);
         }
         // start once initially
         pollAllAppsClosed();
@@ -1035,9 +1030,9 @@ function _waitForAllAppsToStart(savedWindowList) {
                 }
                 getActiveWindowListFlow()
                     .then(function (currentWindowList) {
-                    totalTimeWaited += CFG().POLL_ALL_APPS_STARTED_INTERVAL;
+                    totalTimeWaited += CFG.POLL_ALL_APPS_STARTED_INTERVAL;
                     if (!_isAllAppsStarted(savedWindowList, currentWindowList)) {
-                        if (totalTimeWaited > CFG().POLL_ALL_MAX_TIMEOUT) {
+                        if (totalTimeWaited > CFG.POLL_ALL_MAX_TIMEOUT) {
                             console.error('POLL_ALL_MAX_TIMEOUT reached');
                             console.error('Unable to start the following apps', _getNotStartedApps(savedWindowList, currentWindowList));
                             reject('POLL_ALL_MAX_TIMEOUT reached');
@@ -1053,7 +1048,7 @@ function _waitForAllAppsToStart(savedWindowList) {
                     }
                 })
                     .catch(reject);
-            }, CFG().POLL_ALL_APPS_STARTED_INTERVAL);
+            }, CFG.POLL_ALL_APPS_STARTED_INTERVAL);
         }
         // start once initially
         pollAllAppsStarted(savedWindowList);

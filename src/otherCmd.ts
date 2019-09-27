@@ -20,7 +20,7 @@ function catchGenericErr(err) {
 // display
 // -------
 export function getConnectedDisplaysId(): Promise<string | any> {
-    const cmd = CFG().CMD.GET_DISPLAY_ID;
+    const cmd = CFG.CMD.GET_DISPLAY_ID;
     return new Promise((fulfill, reject) => {
         exec(cmd, EXEC_OPTS, (error, stdout, stderr) => {
             if (error || stderr) {
@@ -59,7 +59,7 @@ function _parseConnectedDisplaysId(stdout): string {
 export function readAndSetAdditionalMetaDataForWin(win) {
     return new Promise((fulfill, reject) => {
 
-        exec(`${CFG().CMD.XPROP_ID} ${win.windowId}`, EXEC_OPTS, (error, stdout, stderr) => {
+        exec(`${CFG.CMD.XPROP_ID} ${win.windowId}`, EXEC_OPTS, (error, stdout, stderr) => {
             if (error || stderr) {
                 console.error(win, error, stderr);
                 reject(error || stderr);
@@ -73,10 +73,10 @@ export function readAndSetAdditionalMetaDataForWin(win) {
                     // remove property name and "="
                     words.splice(0, 2);
                     const value = words.join(' ');
-                    const propertyNameFromMap = CFG().WM_META_MAP[propertyName];
+                    const propertyNameFromMap = CFG.WM_META_MAP[propertyName];
                     // parse wmClassName
                     if (propertyName === 'WM_CLASS(STRING)') {
-                        const propertyNameFromMap = CFG().WM_META_MAP[propertyName];
+                        const propertyNameFromMap = CFG.WM_META_MAP[propertyName];
                         const classNames = value.split(', ');
                         let className = '';
                         classNames.forEach((state) => {
@@ -99,7 +99,7 @@ export function readAndSetAdditionalMetaDataForWin(win) {
                     // parse simple strings and integers
                     else if (propertyNameFromMap) {
                         // special handle number types
-                        if (CFG().WM_META_MAP_NUMBER_TYPES.indexOf(propertyName) > -1) {
+                        if (CFG.WM_META_MAP_NUMBER_TYPES.indexOf(propertyName) > -1) {
                             win[propertyNameFromMap] = parseInt(value, 10);
                         } else {
                             win[propertyNameFromMap] = value;
@@ -206,5 +206,5 @@ function parseWindowIds(stdout) {
 }
 
 function isExcludedWmClassName(wmClassName) {
-    return CFG().WM_CLASS_EXCLUSIONS.indexOf(wmClassName) > -1;
+    return CFG.WM_CLASS_EXCLUSIONS.indexOf(wmClassName) > -1;
 }

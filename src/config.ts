@@ -9,40 +9,34 @@ export const CFG_DATA_DIR = _getUserHome() + '/.lwsm';
 export const CFG_FILE_PATH = CFG_DATA_DIR + '/config.json';
 export const SESSION_DATA_DIR = CFG_DATA_DIR + '/sessionData';
 
-export const CFG = () => {
-    if (cfg) {
-        return cfg;
-    }
+// INIT
+// ------------
+try {
+    // if config is already in place
+    cfg = JSON.parse(fs.readFileSync(CFG_FILE_PATH, 'utf8'));
+} catch (e) {
+    log('lwsm: no config file present or it contains invalid json. Creating new one...');
 
-    // INIT
-    // ------------
-    try {
-        // if config is already in place
-        cfg = JSON.parse(fs.readFileSync(CFG_FILE_PATH, 'utf8'));
-    } catch (e) {
-        log('lwsm: no config file present or it contains invalid json. Creating new one...');
+    // if there is no config yet load default cfg and create files and dirs
+    cfg = DEFAULT_CFG;
 
-        // if there is no config yet load default cfg and create files and dirs
-        cfg = DEFAULT_CFG;
+    // save executable paths to cfg
+    cfg.CMD_JSFILE_PATH = __dirname + '/../cmd.js';
+    cfg.JSFILE_INDEX_PATH = __dirname + '/index.js';
 
-        // save executable paths to cfg
-        cfg.CMD_JSFILE_PATH = __dirname + '/../cmd.js';
-        cfg.JSFILE_INDEX_PATH = __dirname + '/index.js';
+    mkdirSync(CFG_DATA_DIR);
+    mkdirSync(SESSION_DATA_DIR);
 
-        mkdirSync(CFG_DATA_DIR);
-        mkdirSync(SESSION_DATA_DIR);
-
-        // write config to user dir
-        fs.writeFileSync(CFG_FILE_PATH, JSON.stringify(cfg, null, 2), 'utf8');
-    }
+    // write config to user dir
+    fs.writeFileSync(CFG_FILE_PATH, JSON.stringify(cfg, null, 2), 'utf8');
+}
 
 
-    // also make data dirs accessible to the outside
-    cfg.DATA_DIR = CFG_DATA_DIR;
-    cfg.SESSION_DATA_DIR = SESSION_DATA_DIR;
-};
+// also make data dirs accessible to the outside
+cfg.DATA_DIR = CFG_DATA_DIR;
+cfg.SESSION_DATA_DIR = SESSION_DATA_DIR;
 
-
+export const CFG = cfg;
 
 
 function _getUserHome() {

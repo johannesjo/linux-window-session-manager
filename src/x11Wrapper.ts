@@ -274,7 +274,7 @@ function _sendX11ClientMessage(wid, eventName, eventProperties = [], optionalEve
                 X.SendEvent(root, 0, eventMask, data);
 
                 // we need a little time for the buffer to be processed
-                setTimeout(fulfill, CFG().GIVE_X11_TIME_TIMEOUT);
+                setTimeout(fulfill, CFG.GIVE_X11_TIME_TIMEOUT);
             }
         });
     }).catch(catchGenericErr);

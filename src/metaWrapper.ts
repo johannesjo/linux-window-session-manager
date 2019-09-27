@@ -27,7 +27,7 @@ export function goToFirstWorkspace() {
 
 export function findDesktopFile(fileName) {
     return new Promise((fulfill, reject) => {
-        const desktopFileLocations = CFG().DESKTOP_FILE_LOCATIONS || DEFAULT_DESKTOP_FILE_LOCATIONS;
+        const desktopFileLocations = CFG.DESKTOP_FILE_LOCATIONS || DEFAULT_DESKTOP_FILE_LOCATIONS;
         const patterns = [];
 
         const parentDirs = desktopFileLocations.map((parentDir) => {
@@ -123,7 +123,7 @@ function _parseExecutableFileFromWmClassName(wmClassName): Promise<any> {
     return new Promise((fulfill, reject) => {
         console.log(wmClassName);
 
-        const executableFileFromMap = CFG().WM_CLASS_AND_EXECUTABLE_FILE_MAP[wmClassName];
+        const executableFileFromMap = CFG.WM_CLASS_AND_EXECUTABLE_FILE_MAP[wmClassName];
         if (executableFileFromMap) {
             fulfill(executableFileFromMap);
         } else {
