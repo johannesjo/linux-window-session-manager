@@ -1,0 +1,26 @@
+name: lwsm
+version: '2.1.31'
+summary: Store and reload open windows and window positions for x11 desktop.
+description: |
+  This is a library / command line tool that let's you save and reload your opened programs and the positions of their windows.
+  Supports Unity and Gnome Desktops and possibly all other compositing window managers using X (including XWayland).
+
+grade: stable
+confinement: strict
+
+apps:
+  lwsm:
+    command: bin/lwsm
+    plugs:
+      - desktop
+      - wayland
+      - home
+      - x11
+
+parts:
+  cmd:
+    source: .
+    plugin: nodejs
+    node-engine: 10.16.3
+
+
