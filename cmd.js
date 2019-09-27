@@ -1,34 +1,10 @@
 #!/usr/bin/env node
 'use strict';
-const base = require('./lib/index');
-const x11 = require('./lib/x11Wrapper');
+const base = require('./dist/index');
 const omelette = require('omelette');
 
-const createWhatTodoTxt = (win) => `
-LWSM was unable to guess the location of your executable/desktop file.
- 
-There are 3 things, that you can do now: 
+const createWhatTodoTxt = (win) => ``;
 
-Either you can locate the executable or desktop file manually for 
-the application  which isn't started (e.g. via the locate command), 
-and add it to ~/.lwsm/{currentSessionName}.json. If you want to 
-persist the mapping you might also want to open ~/.lwsm/config.json 
-and edit the WM_CLASS_AND_EXECUTABLE_FILE_MAP property by adding a 
-mapping for '${win.wmClassName}'.
-
-If there is a desktop file for the application you might want 
-to add it's location to the DESKTOP_FILE_LOCATIONS property 
-in ~/.lwsm/config.json to make sure this folder is also searched
-the next LWSM tries to guess an desktop file path.
-
-If you want LWSM to ignore the application, you can add 
-the application to the ignore list in ~/.lwsm/config.json which 
-is located under the WM_CLASS_EXCLUSIONS property.
-
-If everything fails please open up an issue at:
-https://github.com/johannesjo/linux-window-session-manager/issues
-
-`;
 
 
 // There should be no output to stdin until completion.init()

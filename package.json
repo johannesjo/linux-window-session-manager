@@ -2,7 +2,8 @@
   "name": "linux-window-session-manager",
   "version": "2.1.31",
   "description": "Window session manager for linux",
-  "main": "lib/index.js",
+  "main": "dist/index.js",
+  "module": "dist/index.es.js",
   "bin": {
     "lwsm": "cmd.js"
   },
@@ -13,16 +14,29 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
-    "buildBin": "find ./node_modules/x11 -type f -exec sed -i 's/req_proxy\\.arguments/arguments/g' {} + && nexe"
+    "buildBin": "find ./node_modules/x11 -type f -exec sed -i 's/req_proxy\\.arguments/arguments/g' {} + && nexe",
+    "build": "rollup --config",
+    "watch": "tsc -p tsconfig.json --watch"
   },
   "author": "Johannes Millan <contact@super-productivity.com> (http://super-productivity.com)",
   "license": "MIT",
   "dependencies": {
+    "promise-waterfall": "^0.1.0",
+    "x11": "^2.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^12.7.8",
+    "D": "^1.0.0",
     "findup-sync": "^4.0.0",
     "jfs": "^0.2.6",
     "omelette": "^0.4.5",
-    "promise-waterfall": "^0.1.0",
-    "x11": "^2.3.0"
+    "rollup": "^1.21.4",
+    "rollup-plugin-node-builtins": "^2.1.2",
+    "rollup-plugin-node-globals": "^1.4.0",
+    "rollup-plugin-node-resolve": "^5.2.0",
+    "rollup-plugin-typescript": "^1.0.1",
+    "tslib": "^1.10.0",
+    "typescript": "^3.6.3"
   },
   "nexe": {
     "input": "./cmd.js",
