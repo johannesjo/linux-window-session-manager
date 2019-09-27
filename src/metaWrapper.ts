@@ -2,6 +2,7 @@
 import {getWindowGeometry, goToViewport} from './x11Wrapper';
 import {getActiveWindowList} from './otherCmd';
 import {CFG} from './config';
+import {WinObj} from './model';
 
 const findup = require('findup-sync');
 
@@ -52,7 +53,7 @@ export function findDesktopFile(fileName) {
 }
 
 
-export function getActiveWindowListFlow() {
+export function getActiveWindowListFlow(): Promise<WinObj[] | any> {
     return new Promise(async (fulfill, reject) => {
         return getActiveWindowList()
             .then(async (windowList: any[]) => {

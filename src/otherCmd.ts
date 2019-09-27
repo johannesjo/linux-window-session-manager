@@ -4,6 +4,7 @@ import {IS_DEBUG} from './isDebug';
 import {CFG} from './config';
 import {exec, spawn} from 'child_process';
 import {parseCmdArgs} from './parseCmdToSpawn';
+import {WinObj, WinObjIdOnly} from './model';
 
 // 500kb
 const MAX_BUFFER = 1024 * 500;
@@ -11,11 +12,6 @@ const EXEC_OPTS = {
     maxBuffer: MAX_BUFFER,
 };
 
-
-function catchGenericErr(err) {
-    console.error('otherCmd: Generic Error', err, err.stack);
-    console.log('otherCmd:', arguments);
-}
 
 // display
 // -------
@@ -31,7 +27,7 @@ export function getConnectedDisplaysId(): Promise<string | any> {
                 fulfill(connectedDisplaysId);
             }
         });
-    }).catch(catchGenericErr);
+    }).catch(_catchGenericErr);
 }
 
 function _parseConnectedDisplaysId(stdout): string {
@@ -56,12 +52,12 @@ function _parseConnectedDisplaysId(stdout): string {
 
 // Other
 // --------
-export function readAndSetAdditionalMetaDataForWin(win) {
+export function getAdditionalMetaDataForWin(win: WinObjIdOnly): Promise<WinObj | unknown> {
+    const tmpWin: any = {...win};
     return new Promise((fulfill, reject) => {
-
-        exec(`${CFG.CMD.XPROP_ID} ${win.windowId}`, EXEC_OPTS, (error, stdout, stderr) => {
+        exec(`${CFG.CMD.XPROP_ID} ${tmpWin.windowId}`, EXEC_OPTS, (error, stdout, stderr) => {
             if (error || stderr) {
-                console.error(win, error, stderr);
+                console.error(tmpWin, error, stderr);
                 reject(error || stderr);
             } else {
                 const lines = stdout.split('\n');
@@ -84,15 +80,15 @@ export function readAndSetAdditionalMetaDataForWin(win) {
                                 className += state.replace(/"/g, '') + '.';
                             }
                         });
-                        win[propertyNameFromMap] = className.substr(0, className.length - 1);
+                        tmpWin[propertyNameFromMap] = className.substr(0, className.length - 1);
                     }
                     // parse states
                     else if (propertyName === '_NET_WM_STATE(ATOM)') {
                         const states = value.split(', ');
-                        win.states = [];
+                        tmpWin.states = [];
                         states.forEach((state) => {
                             if (state !== '') {
-                                win.states.push(state);
+                                tmpWin.states.push(state);
                             }
                         });
                     }
@@ -100,20 +96,20 @@ export function readAndSetAdditionalMetaDataForWin(win) {
                     else if (propertyNameFromMap) {
                         // special handle number types
                         if (CFG.WM_META_MAP_NUMBER_TYPES.indexOf(propertyName) > -1) {
-                            win[propertyNameFromMap] = parseInt(value, 10);
+                            tmpWin[propertyNameFromMap] = parseInt(value, 10);
                         } else {
-                            win[propertyNameFromMap] = value;
+                            tmpWin[propertyNameFromMap] = value;
                         }
                     }
                 });
-                fulfill(win);
+                fulfill(tmpWin);
             }
         });
-    }).catch(catchGenericErr);
+    }).catch(_catchGenericErr);
 }
 
 // TODO prettify args structure
-export function startProgram(executableFile, desktopFilePath) {
+export function startProgram(executableFile: string, desktopFilePath: string): Promise<void> {
     IS_DEBUG && console.log('DEBUG: startProgram():', executableFile, desktopFilePath);
 
     let cmd;
@@ -136,56 +132,46 @@ export function startProgram(executableFile, desktopFilePath) {
 
         // currently we have no error handling as the process is started detached
         fulfill();
-    }).catch(catchGenericErr);
+    });
 }
 
 // GET ACTIVE WINDOW LIST
 // ----------------------
-export function getActiveWindowList() {
-    return new Promise((fulfill, reject) => {
-        getActiveWindowIds()
-            .then((windowIds: string[]) => {
-                const windowList = [];
-                windowIds.forEach((windowId) => {
-                    windowList.push({
-                        windowId: windowId,
-                        windowIdDec: parseInt(windowId, 16),
-                    });
-                });
+export async function getActiveWindowList(): Promise<WinObj[]> {
+    const windowIds = await _getActiveWindowIds();
+    const windowList: WinObjIdOnly[] = [];
+    windowIds.forEach((windowId) => {
+        windowList.push({
+            windowId: windowId,
+            windowIdDec: parseInt(windowId, 16),
+        });
+    });
 
-                // add meta data right away
-                const promises = [];
-                windowList.forEach((win) => {
-                    promises.push(readAndSetAdditionalMetaDataForWin(win));
-                });
+    // add meta data right away
+    const promises = windowList.map((win) => getAdditionalMetaDataForWin(win));
 
-                Promise.all(promises)
-                    .then(() => {
-                        IS_DEBUG && console.log('DEBUG: getActiveWindowList():', windowList);
+    const windowsWithData: WinObj[] = await Promise.all(promises) as WinObj[];
 
-                        const filteredWindows =
-                            windowList
-                                .filter((win) => {
-                                    // filter none normal windows, excluded class names and incomplete windows
-                                    const isNormalWindow = (!win.wmType || win.wmType === '_NET_WM_WINDOW_TYPE_NORMAL');
-
-                                    const isNotExcluded = !(isExcludedWmClassName(win.wmClassName));
-                                    const hasWmClassName = !!(win.wmClassName);
-
-                                    // warn if no wmClassName even though there should be
-                                    if (isNormalWindow && isNotExcluded && !hasWmClassName) {
-                                        console.warn(win.windowId + ' has no wmClassName. Win: ', win);
-                                    }
-
-                                    return (isNormalWindow && isNotExcluded && hasWmClassName);
-                                });
-                        fulfill(filteredWindows);
-                    }).catch(reject);
-            }).catch(reject);
-    }).catch(catchGenericErr);
+    IS_DEBUG && console.log('DEBUG: getActiveWindowList():', windowList);
+    return windowsWithData.filter(_filterInvalidWindows);
 }
 
-function getActiveWindowIds(): Promise<string[] | any> {
+function _filterInvalidWindows(win: WinObj): boolean {
+    // filter none normal windows, excluded class names and incomplete windows
+    const isNormalWindow = (!win.wmType || win.wmType === '_NET_WM_WINDOW_TYPE_NORMAL');
+
+    const isNotExcluded = !(_isExcludedWmClassName(win.wmClassName));
+    const hasWmClassName = !!(win.wmClassName);
+
+    // warn if no wmClassName even though there should be
+    if (isNormalWindow && isNotExcluded && !hasWmClassName) {
+        console.warn(win.windowId + ' has no wmClassName. Win: ', win);
+    }
+
+    return (isNormalWindow && isNotExcluded && hasWmClassName);
+}
+
+function _getActiveWindowIds(): Promise<string[] | any> {
     const cmd = 'xprop -root|grep ^_NET_CLIENT_LIST\\(WINDOW\\)';
     return new Promise((fulfill, reject) => {
         exec(cmd, EXEC_OPTS, (error, stdout, stderr) => {
@@ -193,18 +179,23 @@ function getActiveWindowIds(): Promise<string[] | any> {
                 console.error('xprop', error, stderr);
                 reject(error || stderr);
             } else {
-                const windowIds = parseWindowIds(stdout);
+                const windowIds = _parseWindowIds(stdout);
                 fulfill(windowIds);
             }
         });
-    }).catch(catchGenericErr);
+    }).catch(_catchGenericErr);
 }
 
-function parseWindowIds(stdout) {
+function _parseWindowIds(stdout): string[] {
     const str = stdout.replace('_NET_CLIENT_LIST(WINDOW): window id #', '');
     return str.split(', ');
 }
 
-function isExcludedWmClassName(wmClassName) {
+function _isExcludedWmClassName(wmClassName): boolean {
     return CFG.WM_CLASS_EXCLUSIONS.indexOf(wmClassName) > -1;
+}
+
+function _catchGenericErr(err): void {
+    console.error('otherCmd: Generic Error', err, err.stack);
+    console.log('otherCmd:', arguments);
 }

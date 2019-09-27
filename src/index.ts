@@ -5,6 +5,7 @@ import {getConnectedDisplaysId, startProgram} from './otherCmd';
 import {closeWindow, getX, initX11, moveToWorkspace, restoreWindowPosition} from './x11Wrapper';
 import {findDesktopFile, getActiveWindowListFlow, goToFirstWorkspace} from './metaWrapper';
 import {log} from './log';
+import {WinObj} from './model';
 // import * as Store from 'jfs';
 const Store = require('jfs');
 
@@ -66,7 +67,7 @@ function listSessions() {
     });
 }
 
-function renameSession(oldName, newName) {
+function renameSession(oldName: string, newName: string) {
     let obj = db.getSync(oldName);
     if (obj.message) {
         if (obj.message === 'could not load data') {
@@ -80,7 +81,7 @@ function renameSession(oldName, newName) {
     db.delete(oldName);
 }
 
-function saveSession(sessionName, inputHandlers) {
+function saveSession(sessionName: string, inputHandlers): Promise<any> {
     const sessionToHandle = sessionName || 'DEFAULT';
 
     return initX11()
@@ -105,7 +106,7 @@ function saveSession(sessionName, inputHandlers) {
         });
 }
 
-function saveSessionForDisplayToDb(sessionToHandle, connectedDisplaysId, windowList) {
+function saveSessionForDisplayToDb(sessionToHandle: string, connectedDisplaysId: string, windowList: WinObj[]): Promise<void> {
     return new Promise((fulfill, reject) => {
         // check if entry exists and update
         db.get(sessionToHandle, (err, sessionData) => {
@@ -147,7 +148,7 @@ function saveSessionForDisplayToDb(sessionToHandle, connectedDisplaysId, windowL
     });
 }
 
-function restoreSession(sessionName, isCloseAllOpenWindows) {
+function restoreSession(sessionName: string, isCloseAllOpenWindows: boolean): Promise<any> {
     const sessionToHandle = sessionName || 'DEFAULT';
 
     return new Promise((fulfill, reject) => {
@@ -188,7 +189,7 @@ function restoreSession(sessionName, isCloseAllOpenWindows) {
                     // gets current window list by itself and returns the updated variant
                     return _waitForAllAppsToStart(savedWindowList);
                 })
-                .then((updatedCurrentWindowList) => {
+                .then((updatedCurrentWindowList: WinObj[]) => {
                     _updateWindowIds(savedWindowList, updatedCurrentWindowList);
                     return _restoreWindowPositions(savedWindowList);
                 })
@@ -204,7 +205,7 @@ function restoreSession(sessionName, isCloseAllOpenWindows) {
     }).catch(_catchGenericErr);
 }
 
-function removeSession(sessionName) {
+function removeSession(sessionName: string): Promise<unknown> {
     return new Promise((fulfill, reject) => {
         fs.unlink(CFG.SESSION_DATA_DIR + '/' + sessionName + '.json', (error) => {
             if (error) {
@@ -217,7 +218,7 @@ function removeSession(sessionName) {
     }).catch(_catchGenericErr);
 }
 
-function _closeAllWindowsIfSet(isCloseAll) {
+function _closeAllWindowsIfSet(isCloseAll: boolean): Promise<unknown> {
     return new Promise((fulfill, reject) => {
         if (isCloseAll) {
             log('Closing opened applications');
@@ -238,13 +239,13 @@ function _closeAllWindowsIfSet(isCloseAll) {
     }).catch(_catchGenericErr);
 }
 
-function _waitForAllAppsToClose() {
+function _waitForAllAppsToClose(): Promise<unknown> {
     let totalTimeWaited = 0;
     return new Promise((fulfill, reject) => {
         function pollAllAppsClosed() {
             setTimeout(() => {
                 getActiveWindowListFlow()
-                    .then((currentWindowList: any[]) => {
+                    .then((currentWindowList: WinObj[]) => {
                         totalTimeWaited += CFG.POLL_ALL_APPS_STARTED_INTERVAL;
                         if (currentWindowList.length !== 0) {
                             if (totalTimeWaited > CFG.POLL_ALL_MAX_TIMEOUT) {
@@ -259,7 +260,6 @@ function _waitForAllAppsToClose() {
                         }
                     })
                     .catch(reject);
-                ;
             }, CFG.POLL_ALL_APPS_STARTED_INTERVAL);
         }
 
@@ -268,7 +268,7 @@ function _waitForAllAppsToClose() {
     }).catch(_catchGenericErr);
 }
 
-function _waitForAllAppsToStart(savedWindowList) {
+function _waitForAllAppsToStart(savedWindowList): Promise<WinObj[] | unknown> {
     log('Wait for all applications to start');
 
     let totalTimeWaited = 0;
@@ -308,7 +308,7 @@ function _waitForAllAppsToStart(savedWindowList) {
     }).catch(_catchGenericErr);
 }
 
-function _getNotStartedApps(savedWindowList, currentWindowList) {
+function _getNotStartedApps(savedWindowList: WinObj[], currentWindowList: WinObj[]): WinObj[] {
     let nonStartedApps = [];
     savedWindowList.forEach((win) => {
         if (!_getMatchingWindowId(win, currentWindowList)) {
@@ -318,7 +318,7 @@ function _getNotStartedApps(savedWindowList, currentWindowList) {
     return nonStartedApps;
 }
 
-function _isAllAppsStarted(savedWindowList, currentWindowList) {
+function _isAllAppsStarted(savedWindowList: WinObj[], currentWindowList: WinObj[]): boolean {
     let isAllStarted = true;
     const currentWindowListCopy = currentWindowList.slice(0);
     savedWindowList.forEach((win) => {
@@ -332,7 +332,7 @@ function _isAllAppsStarted(savedWindowList, currentWindowList) {
     return isAllStarted;
 }
 
-async function _guessAndSetDesktopFilePaths(windowList, inputHandler) {
+async function _guessAndSetDesktopFilePaths(windowList: WinObj[], inputHandler): Promise<WinObj[]> {
     const promises = windowList.map((win) => _guessFilePath(win, inputHandler));
 
     for (const promise of promises) {
@@ -345,7 +345,7 @@ async function _guessAndSetDesktopFilePaths(windowList, inputHandler) {
     return windowList;
 }
 
-function _guessFilePath(win, inputHandler) {
+function _guessFilePath(win: WinObj, inputHandler): Promise<string | unknown> {
     return new Promise((fulfill, reject) => {
         function callInputHandler(error?, stdout?) {
             inputHandler(error, win, stdout)
@@ -375,35 +375,29 @@ function _guessFilePath(win, inputHandler) {
 }
 
 // TODO check for how many instances there should be running of a program
-function _startSessionPrograms(windowList, currentWindowList) {
-    const promises = [];
-
+async function _startSessionPrograms(windowList: WinObj[], currentWindowList: WinObj[]): Promise<void> {
     // set instances started to 0
     windowList.forEach((win) => win.instancesStarted = 0);
-    windowList.forEach((win) => {
-        const numberOfInstancesOfWin = _getNumberOfInstancesToRun(win, windowList);
-        if (!_isProgramAlreadyRunning(win.wmClassName, currentWindowList, numberOfInstancesOfWin, win.instancesStarted)) {
-            promises.push(startProgram(win.executableFile, win.desktopFilePath));
+    const promises = windowList
+        .filter((win) => {
+            const numberOfInstancesOfWin = _getNumberOfInstancesToRun(win, windowList);
+            return (!_isProgramAlreadyRunning(win.wmClassName, currentWindowList, numberOfInstancesOfWin, win.instancesStarted));
+        })
+        .map((win) => {
             win.instancesStarted += 1;
-        }
-    });
+            return startProgram(win.executableFile, win.desktopFilePath);
+        });
 
-    return new Promise((fulfill, reject) => {
-        Promise.all(promises)
-            .then((results) => {
-                fulfill(results);
-            })
-            .catch(reject);
-    }).catch(_catchGenericErr);
+    await Promise.all(promises);
 }
 
-function _getNumberOfInstancesToRun(windowToMatch, windowList) {
+function _getNumberOfInstancesToRun(windowToMatch: WinObj, windowList: WinObj[]): number {
     return windowList.filter((win) => {
         return win.wmClassName === windowToMatch.wmClassName;
     }).length;
 }
 
-function _isProgramAlreadyRunning(wmClassName, currentWindowList, numberOfInstancesToRun, instancesStarted) {
+function _isProgramAlreadyRunning(wmClassName: string, currentWindowList: WinObj[], numberOfInstancesToRun: number, instancesStarted: number): boolean {
     if (!numberOfInstancesToRun) {
         numberOfInstancesToRun = 1;
     }
@@ -422,11 +416,11 @@ function _isProgramAlreadyRunning(wmClassName, currentWindowList, numberOfInstan
     return instancesRunning + instancesStarted >= numberOfInstancesToRun;
 }
 
-function _isDesktopFile(executableFile) {
-    return executableFile && executableFile.match(/desktop$/);
+function _isDesktopFile(executableFile: string): boolean {
+    return executableFile && !!executableFile.match(/desktop$/);
 }
 
-function _updateWindowIds(savedWindowList, currentWindowList) {
+function _updateWindowIds(savedWindowList: WinObj[], currentWindowList: WinObj[]) {
     const wmClassNameMap = {};
     savedWindowList.forEach((win) => {
         if (!wmClassNameMap[win.wmClassName]) {
@@ -441,16 +435,16 @@ function _updateWindowIds(savedWindowList, currentWindowList) {
     });
 }
 
-function _getMatchingWindowId(win, currentWindowList) {
+function _getMatchingWindowId(win: WinObj, currentWindowList: WinObj[]): string {
     const currentWindow = currentWindowList.find((winFromCurrent) => win.wmClassName === winFromCurrent.wmClassName);
     return currentWindow && currentWindow.windowId;
 }
 
-function _getMatchingWindows(win, currentWindowList) {
+function _getMatchingWindows(win: WinObj, currentWindowList: WinObj[]): WinObj[] {
     return currentWindowList.filter((winFromCurrent) => win.wmClassName === winFromCurrent.wmClassName);
 }
 
-async function _restoreWindowPositions(savedWindowList) {
+async function _restoreWindowPositions(savedWindowList: WinObj[]): Promise<void> {
     const promises = [];
     savedWindowList.forEach((win) => {
         promises.push(restoreWindowPosition(win));
