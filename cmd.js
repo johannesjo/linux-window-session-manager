@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 const base = require('./lib/index');
+const x11 = require('./lib/x11Wrapper');
 const omelette = require('omelette');
 
 const createWhatTodoTxt = (win) => `
@@ -95,18 +96,25 @@ if (process.argv[3] && !process.argv[3].match(/^--/)) {
   sessionName = process.argv[3];
 }
 
+function killX11() {
+  const x = x11().X;
+  if (x) {
+    x.terminate();
+  }
+}
+
 if (action === 'save') {
-  base.saveSession(sessionName, savePrompts);
+  base.saveSession(sessionName, savePrompts).then(killX11);
 } else if (action === 'restore') {
-  base.restoreSession(sessionName, isCloseAllWinBefore);
+  base.restoreSession(sessionName, isCloseAllWinBefore).then(killX11);
 } else if (action === 'remove') {
-  base.removeSession(sessionName);
+  base.removeSession(sessionName).then(killX11);
 } else if (action === 'resetCfg') {
   base.resetCfg();
 } else if (action === 'list') {
   base.listSessions();
 } else if (action === 'rename' && sessionName && (process.argv[4] && !process.argv[4].match(/^--/))) {
-  base.renameSession(sessionName,process.argv[4]);
+  base.renameSession(sessionName, process.argv[4]);
 } else {
   console.log(`
   Usage:\n
