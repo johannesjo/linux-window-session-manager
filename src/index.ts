@@ -1,16 +1,15 @@
 'use strict';
 import {CFG, SESSION_DATA_DIR} from './config';
-import * as Store from 'jfs';
 import * as fs from 'fs';
-import {getActiveWindowList, getConnectedDisplaysId, startProgram} from './otherCmd';
-import {closeWindow, goToWorkspace, restoreWindowPosition, X} from './x11Wrapper';
+import {getConnectedDisplaysId, startProgram} from './otherCmd';
+import {closeWindow, getX, initX11, moveToWorkspace, restoreWindowPosition} from './x11Wrapper';
 import {findDesktopFile, getActiveWindowListFlow, goToFirstWorkspace} from './metaWrapper';
-
-const waterfall = require('promise-waterfall');
+import {log} from './log';
+// import * as Store from 'jfs';
+const Store = require('jfs');
 
 
 CFG();
-
 
 // create data store
 const db = new Store(SESSION_DATA_DIR, {pretty: CFG().SAVE_SESSION_IN_PRETTY_FORMAT});
@@ -27,7 +26,7 @@ export default {
     removeSession,
     restoreSession,
     getSessions,
-    X: X,
+    getX: getX,
 
 
     getConnectedDisplaysId,
@@ -63,7 +62,7 @@ function getSessions() {
 function listSessions() {
     let list = Object.keys(getSessions());
     list.forEach((name) => {
-        console.log(name);
+        log(name);
     });
 }
 
@@ -71,9 +70,9 @@ function renameSession(oldName, newName) {
     let obj = db.getSync(oldName);
     if (obj.message) {
         if (obj.message === 'could not load data') {
-            console.log(`Error: Could not find a session named '${oldName}'`);
+            log(`Error: Could not find a session named '${oldName}'`);
         } else {
-            console.log(obj.message);
+            log(obj.message);
         }
         return;
     }
@@ -84,7 +83,10 @@ function renameSession(oldName, newName) {
 function saveSession(sessionName, inputHandlers) {
     const sessionToHandle = sessionName || 'DEFAULT';
 
-    return getActiveWindowList()
+    return initX11()
+        .then(() => {
+            return getActiveWindowListFlow();
+        })
         .then((windowList) => {
             // desktop file paths and connected display ids
             return Promise.all([
@@ -109,7 +111,7 @@ function saveSessionForDisplayToDb(sessionToHandle, connectedDisplaysId, windowL
         db.get(sessionToHandle, (err, sessionData) => {
             if (err) {
                 // NOTE: we're not failing because, the case is probably that there is no session file yet
-                console.log(`saveSessionForDisplayToDb: no session file present yet for "${sessionToHandle}", creating a new one...`);
+                log(`saveSessionForDisplayToDb: no session file present yet for "${sessionToHandle}", creating a new one...`);
             }
 
             if (!sessionData) {
@@ -137,7 +139,7 @@ function saveSessionForDisplayToDb(sessionToHandle, connectedDisplaysId, windowL
                 if (err) {
                     reject(err);
                 } else {
-                    console.log('SAVED SESSION: ' + sessionToHandle);
+                    log('SAVED SESSION: ' + sessionToHandle);
                     fulfill();
                 }
             });
@@ -157,7 +159,10 @@ function restoreSession(sessionName, isCloseAllOpenWindows) {
 
             let savedWindowList;
 
-            _closeAllWindowsIfSet(isCloseAllOpenWindows)
+            initX11()
+                .then(() => {
+                    return _closeAllWindowsIfSet(isCloseAllOpenWindows);
+                })
                 .then(goToFirstWorkspace)
                 .then(getConnectedDisplaysId)
                 .then((connectedDisplaysId) => {
@@ -188,7 +193,7 @@ function restoreSession(sessionName, isCloseAllOpenWindows) {
                     return _restoreWindowPositions(savedWindowList);
                 })
                 .then(() => {
-                    console.log('RESTORED SESSION: ' + sessionToHandle);
+                    log('RESTORED SESSION: ' + sessionToHandle);
                 })
                 .catch((err) => {
                     console.error('An error occurred', err);
@@ -215,7 +220,7 @@ function removeSession(sessionName) {
 function _closeAllWindowsIfSet(isCloseAll) {
     return new Promise((fulfill, reject) => {
         if (isCloseAll) {
-            console.log('Closing opened applications');
+            log('Closing opened applications');
             getActiveWindowListFlow()
                 .then((currentWindowList: any[]) => {
                     currentWindowList.forEach((win) => {
@@ -264,7 +269,7 @@ function _waitForAllAppsToClose() {
 }
 
 function _waitForAllAppsToStart(savedWindowList) {
-    console.log('Wait for all applications to start');
+    log('Wait for all applications to start');
 
     let totalTimeWaited = 0;
     let timeout;
@@ -290,7 +295,7 @@ function _waitForAllAppsToStart(savedWindowList) {
                                 pollAllAppsStarted(savedWindowList);
                             }
                         } else {
-                            console.log('All applications started');
+                            log('All applications started');
                             fulfill(currentWindowList);
                         }
                     })
@@ -327,21 +332,17 @@ function _isAllAppsStarted(savedWindowList, currentWindowList) {
     return isAllStarted;
 }
 
-function _guessAndSetDesktopFilePaths(windowList, inputHandler) {
-    const promises = [];
-    windowList.forEach((win) => {
-        promises.push(() => {
-            return _guessFilePath(win, inputHandler);
-        });
-    });
+async function _guessAndSetDesktopFilePaths(windowList, inputHandler) {
+    const promises = windowList.map((win) => _guessFilePath(win, inputHandler));
 
-    return new Promise((fulfill, reject) => {
-        waterfall(promises)
-            .then(() => {
-                fulfill(windowList);
-            })
-            .catch(reject);
-    }).catch(_catchGenericErr);
+    for (const promise of promises) {
+        try {
+            await promise;
+        } catch (e) {
+            _catchGenericErr(e);
+        }
+    }
+    return windowList;
 }
 
 function _guessFilePath(win, inputHandler) {
@@ -359,9 +360,6 @@ function _guessFilePath(win, inputHandler) {
                 })
                 .catch(reject);
         }
-
-        console.log(_isDesktopFile(win.executableFile), win.executableFile);
-
 
 
         if (_isDesktopFile(win.executableFile)) {
@@ -420,7 +418,7 @@ function _isProgramAlreadyRunning(wmClassName, currentWindowList, numberOfInstan
             instancesRunning++;
         }
     });
-    console.log('Status: "' + wmClassName + '" is running:', (instancesRunning + instancesStarted >= numberOfInstancesToRun), numberOfInstancesToRun, instancesStarted);
+    log('Status: "' + wmClassName + '" is running:', (instancesRunning + instancesStarted >= numberOfInstancesToRun), numberOfInstancesToRun, instancesStarted);
     return instancesRunning + instancesStarted >= numberOfInstancesToRun;
 }
 
@@ -452,22 +450,19 @@ function _getMatchingWindows(win, currentWindowList) {
     return currentWindowList.filter((winFromCurrent) => win.wmClassName === winFromCurrent.wmClassName);
 }
 
-function _restoreWindowPositions(savedWindowList) {
+async function _restoreWindowPositions(savedWindowList) {
     const promises = [];
     savedWindowList.forEach((win) => {
-        promises.push(() => {
-            return restoreWindowPosition(win);
-        });
-        promises.push(() => {
-            return goToWorkspace(win.windowId, win.wmCurrentDesktopNr);
-        });
+        promises.push(restoreWindowPosition(win));
+        promises.push(moveToWorkspace(win.windowId, win.wmCurrentDesktopNr));
     });
 
-    return new Promise((fulfill, reject) => {
-        waterfall(promises)
-            .then((results) => {
-                fulfill(results);
-            })
-            .catch(reject);
-    }).catch(_catchGenericErr);
+
+    for (const promise of promises) {
+        try {
+            await promise;
+        } catch (e) {
+            _catchGenericErr(e);
+        }
+    }
 }

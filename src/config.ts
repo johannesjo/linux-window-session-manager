@@ -1,6 +1,7 @@
 import {mkdirSync} from './utility';
 import {DEFAULT_CFG} from './defaultConfig';
 import * as fs from 'fs';
+import {log} from './log';
 
 let cfg;
 
@@ -19,7 +20,7 @@ export const CFG = () => {
         // if config is already in place
         cfg = JSON.parse(fs.readFileSync(CFG_FILE_PATH, 'utf8'));
     } catch (e) {
-        console.log('lwsm: no config file present or it contains invalid json. Creating new one...');
+        log('lwsm: no config file present or it contains invalid json. Creating new one...');
 
         // if there is no config yet load default cfg and create files and dirs
         cfg = DEFAULT_CFG;

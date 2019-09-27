@@ -6,7 +6,6 @@ const omelette = require('omelette');
 const createWhatTodoTxt = (win) => ``;
 
 
-
 // There should be no output to stdin until completion.init()
 const sessionList = Object.keys(base.getSessions());
 
@@ -73,7 +72,7 @@ if (process.argv[3] && !process.argv[3].match(/^--/)) {
 }
 
 function killX11() {
-  const x = x11().X;
+  const x = base.getX();
   if (x) {
     x.terminate();
   }

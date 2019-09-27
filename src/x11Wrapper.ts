@@ -1,62 +1,32 @@
 'use strict';
 
-const x11 = require('x11');
+import {log} from './log';
 import {CFG} from './config';
+
+const x11 = require('x11');
 
 export let X;
 let root;
 
 
-export const setState = wrapX11(_setState);
-export const goToViewport = wrapX11(_goToViewport);
-export const restoreWindowPosition = wrapX11(_restoreWindowPosition);
-export const getWindowGeometry = wrapX11(_getWindowGeometry);
-export const closeWindow = wrapX11(_closeWindow);
-export const goToWorkspace = wrapX11(_goToWorkspace);
-export const getWindowInfo = wrapX11(_getWindowInfo);
-
+// export const getWindowInfo = wrapX11(_getWindowInfo);
+export const getX = () => X;
 
 function catchGenericErr(err) {
     console.error('x11Wrapper: ', err, err.stack);
 }
 
-function wrapX11(fn: Function): Function {
-    return function () {
-        const args = arguments;
-        const that = this;
-
-        return initX11()
-            .then(() => {
-                const mainFnResult = fn.apply(that, args);
-                if (mainFnResult && mainFnResult.then) {
-                    mainFnResult
-                        .then(function () {
-                            // instead of this:
-                            // return Promise.resolve(...arguments);
-                            // we use this to be compatible with older versions of node
-                            return Promise.resolve.apply(Promise, arguments);
-                        }).catch(catchGenericErr);
-                }
-                return mainFnResult;
-            }).catch(catchGenericErr);
-    };
-}
-
 let isClientInitialized = false;
 let initPromise;
 
-function initX11() {
-    console.log(initPromise, isClientInitialized);
-
+export function initX11(): Promise<any> {
+    if (isClientInitialized) {
+        return Promise.resolve();
+    }
     if (initPromise) {
         return initPromise;
     }
     initPromise = new Promise((fulfill, reject) => {
-        if (isClientInitialized) {
-            fulfill();
-            return;
-        }
-
         x11.createClient((err, display) => {
             if (err) {
                 reject(err);
@@ -75,7 +45,7 @@ function initX11() {
 
 // METHODS
 // -------
-function _getWindowGeometry(winId) {
+export function getWindowGeometry(winId) {
     const geo: any = {};
 
     return new Promise((fulfill, reject) => {
@@ -100,18 +70,18 @@ function _getWindowGeometry(winId) {
     }).catch(catchGenericErr);
 }
 
-function _restoreWindowPosition(win) {
-    console.log('Restoring window position for "' + win.wmClassName + '"');
+export function restoreWindowPosition(win) {
+    log('Restoring window position for "' + win.wmClassName + '"');
     const STATES_TO_RESET = [
         '_NET_WM_STATE_MAXIMIZED_VERT',
         '_NET_WM_STATE_MAXIMIZED_HORZ'
     ];
     return new Promise((fulfill, reject) => {
-        _setState(win.windowId, 'remove', STATES_TO_RESET)
+        setState(win.windowId, 'remove', STATES_TO_RESET)
             .catch(reject)
             .then(() => {
                 X.MoveResizeWindow(win.windowId, win.x, win.y, win.width, win.height);
-                _setState(win.windowId, 'add', win.states)
+                setState(win.windowId, 'add', win.states)
                     .catch(reject)
                     .then(() => {
                         fulfill();
@@ -121,26 +91,26 @@ function _restoreWindowPosition(win) {
     }).catch(catchGenericErr);
 }
 
-function _closeWindow(winId) {
-    return sendX11ClientMessage(winId, '_NET_CLOSE_WINDOW');
+export function closeWindow(winId) {
+    return _sendX11ClientMessage(winId, '_NET_CLOSE_WINDOW');
 }
 
-function _goToWorkspace(winId, workSpaceNr) {
+export function moveToWorkspace(winId, workSpaceNr) {
     // NOTE: if it doesn't work we might also want to use _WIN_WORKSPACE
-    return sendX11ClientMessage(winId, '_NET_WM_DESKTOP', [{
+    return _sendX11ClientMessage(winId, '_NET_WM_DESKTOP', [{
         value: workSpaceNr,
     }]);
 }
 
-function _goToViewport(x, y) {
-    return sendX11ClientMessage(root, '_NET_DESKTOP_VIEWPORT', [
+export function goToViewport(x, y) {
+    return _sendX11ClientMessage(root, '_NET_DESKTOP_VIEWPORT', [
             {value: x},
             {value: y},
         ]
     );
 }
 
-function _setState(wid, actionStr, statesToHandle) {
+export function setState(wid, actionStr, statesToHandle) {
     const ACTIONS_MAP = {
         remove: 0,
         add: 1,
@@ -159,7 +129,7 @@ function _setState(wid, actionStr, statesToHandle) {
                 value: stateProperty,
             });
         });
-        return sendX11ClientMessage(wid, '_NET_WM_STATE', properties);
+        return _sendX11ClientMessage(wid, '_NET_WM_STATE', properties);
     } else {
         return Promise.resolve();
     }
@@ -167,7 +137,7 @@ function _setState(wid, actionStr, statesToHandle) {
 
 // HELPER
 // ------
-function counter(initialVal, modifier) {
+function _counter(initialVal, modifier) {
     // to start at val we need to subtract the modifier first
     let val = initialVal - modifier;
     return () => {
@@ -176,7 +146,7 @@ function counter(initialVal, modifier) {
     };
 }
 
-function getAtoms(list, cb) {
+function _getAtoms(list, cb) {
     const res = {};
     const getAtom = () => {
         if (list.length === 0) {
@@ -258,12 +228,12 @@ function _getWindowInfo(wid) {
 }
 
 
-function sendX11ClientMessage(wid, eventName, eventProperties = [], optionalEventMask?) {
+function _sendX11ClientMessage(wid, eventName, eventProperties = [], optionalEventMask?) {
     if (eventProperties.length > 4) {
         throw 'only supports 4 properties at once max';
     }
 
-    const offsetCounter = counter(4, 4);
+    const offsetCounter = _counter(4, 4);
     const eventMask = optionalEventMask || x11.eventMask.SubstructureRedirect;
 
     // create atoms to look up
@@ -283,7 +253,7 @@ function sendX11ClientMessage(wid, eventName, eventProperties = [], optionalEven
     data.writeUInt32LE(wid, offsetCounter());
 
     return new Promise((fulfill, reject) => {
-        getAtoms(atomsList, (err, atoms) => {
+        _getAtoms(atomsList, (err, atoms) => {
             if (err) {
                 reject(err);
                 throw err;
@@ -314,7 +284,7 @@ function sendX11ClientMessage(wid, eventName, eventProperties = [], optionalEven
 //testFn('0x04a00001').then((geo) => {
 //});
 
-//const testFn = wrapX11(goToWorkspace);
+//const testFn = wrapX11(moveToWorkspace);
 //testFn('0x04e00001 ', 2);
 
 //const testFnX = wrapX11(restoreWindowPosition);

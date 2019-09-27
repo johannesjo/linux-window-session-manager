@@ -21,14 +21,13 @@
   "author": "Johannes Millan <contact@super-productivity.com> (http://super-productivity.com)",
   "license": "MIT",
   "dependencies": {
-    "promise-waterfall": "^0.1.0",
-    "x11": "^2.3.0"
+    "x11": "^2.3.0",
+    "findup-sync": "^4.0.0",
+    "jfs": "^0.2.6"
   },
   "devDependencies": {
     "@types/node": "^12.7.8",
     "D": "^1.0.0",
-    "findup-sync": "^4.0.0",
-    "jfs": "^0.2.6",
     "omelette": "^0.4.5",
     "rollup": "^1.21.4",
     "rollup-plugin-node-builtins": "^2.1.2",

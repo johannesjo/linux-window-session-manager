@@ -10,7 +10,9 @@ export default {
     globals(),
     // builtins({crypto: false}),
     typescript(),
-    // resolve(),
+    resolve({
+      preferBuiltins: true
+    }),
   ],
   output: [
     { file: pkg.main, format: 'cjs' },

@@ -1,11 +1,4 @@
 import * as fs from 'fs';
-import {CFG} from './config';
-
-
-function _catchGenericErr(err) {
-    console.error('util: Generic Error', err, err.stack);
-    console.log('util:', arguments);
-}
 
 
 export function mkdirSync(dirPath) {
