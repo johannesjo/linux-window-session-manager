@@ -1,3 +1,4 @@
 sessionStore/
 tmp/
 npm-debug.log
+snap/.snapcraft

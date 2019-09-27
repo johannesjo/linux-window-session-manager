@@ -181,8 +181,9 @@ which@^1.2.14:
   dependencies:
     isexe "^2.0.0"
 
-x11@^2.2.1:
+x11@^2.3.0:
   version "2.3.0"
   resolved "https://registry.yarnpkg.com/x11/-/x11-2.3.0.tgz#bdaccedccdac2482fd560f0511e7bf2bd9e1dbf2"
+  integrity sha1-vazO3M2sJIL9Vg8FEee/K9nh2/I=
   dependencies:
     os-homedir "^1.0.1"
