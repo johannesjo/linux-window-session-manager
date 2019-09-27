@@ -1,6 +1,9 @@
-[![npm version](https://badge.fury.io/js/linux-window-session-manager.svg)](https://badge.fury.io/js/linux-window-session-manager)
+<p align="center"><img src="logo.png"></p>
 
-# Linux Window Session Manager
+<p align="center">
+ <a href="https://badge.fury.io/js/linux-window-session-manager"><img src="https://badge.fury.io/js/linux-window-session-manager.svg"></a>
+ <a href="https://lbesson.mit-license.org"><img alt="MIT license" src="https://img.shields.io/badge/License-MIT-blue.svg"></a>
+</p>
 
 This is a library / command line tool that let's you save and reload your opened programs and the positions of their windows. 
 Supports Unity and Gnome Desktops and possibly all other compositing window managers using X (including XWayland).
@@ -79,9 +82,12 @@ In order to resize and move the windows the X window manager is used. Unfortunat
 * Windows moved to the very left of the screen will always be off by some pixels in Unity
 * Sometimes a window can't be restored properly any more. In those cases it helps to close the window and restart the application.
 * When you're using Wayland as display manager all gnome applications won't be saved or restored. Only XWayland applications will work.
+  *  You easily [switch back to Xorg](https://itsfoss.com/switch-xorg-wayland/)
 
 ## Troubleshooting & Issues
 **!!! please read this before opening up an issue !!!**
+
+**If you're using Wayland, have a look at above at the known qurks section**
 
 ### Application are not started/lwsm doesn't work 
 
