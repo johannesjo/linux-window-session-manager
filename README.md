@@ -105,6 +105,8 @@ If you want to persist that mapping you might also want to open `~/.lwsm/config.
 
 2. If the desktop files are consistently stored in a folder not mapped by lwsm you might want to add it's location to the `DESKTOP_FILE_LOCATIONS` property in `~/.lwsm/config.json` to make sure this folder is also searched the next lwsm tries to guess an desktop file path. If you think the path should be there per default [please open up an issue](https://github.com/johannesjo/linux-window-session-manager/issues).
 
+You can also see [this comment for more detailed instructions](https://github.com/johannesjo/linux-window-session-manager/issues/45#issuecomment-536179295).
+
 ### Ignoring applications
 If you want lwsm to ignore the application, you can add it to the ignore list in `~/.lwsm/config.json` which is located under the `WM_CLASS_EXCLUSIONS` property.
 
