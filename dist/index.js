@@ -296,6 +296,19 @@ function getWindowGeometry(winId) {
         });
     }).catch(catchGenericErr);
 }
+function getActiveWindowIds() {
+    return __awaiter(this, void 0, Promise, function () {
+        var idStr;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, getProp(root, 498)];
+                case 1:
+                    idStr = _a.sent();
+                    return [2 /*return*/, _parseWindowIds(idStr)];
+            }
+        });
+    });
+}
 function restoreWindowPosition(win) {
     log('Restoring window position for "' + win.wmClassName + '"');
     var STATES_TO_RESET = [
@@ -419,6 +432,26 @@ function getWindowInfo(wid) {
         });
     });
 }
+function getProp(id, propId) {
+    if (id === void 0) { id = root; }
+    return __awaiter(this, void 0, Promise, function () {
+        var propVal, typeName;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, _xCbToPromise(X.GetProperty, 0, id, propId, 0, 0, 10000000)];
+                case 1:
+                    propVal = _a.sent();
+                    return [4 /*yield*/, _xCbToPromise(X.GetAtomName, propVal.type)];
+                case 2:
+                    typeName = _a.sent();
+                    return [4 /*yield*/, _decodeProperty(typeName, propVal.data)];
+                case 3: return [2 /*return*/, _a.sent()];
+            }
+        });
+    });
+}
+// HELPER
+// ------
 function _xCbToPromise(fn) {
     var args = [];
     for (var _i = 1; _i < arguments.length; _i++) {
@@ -430,8 +463,6 @@ function _xCbToPromise(fn) {
             }]));
     });
 }
-// HELPER
-// ------
 function _counter(initialVal, modifier) {
     // to start at val we need to subtract the modifier first
     var val = initialVal - modifier;
@@ -576,12 +607,12 @@ function _decodeProperty(type, data) {
 function quotize(i) {
     return '\"' + i + '\"';
 }
+function _parseWindowIds(strIn) {
+    var str = strIn.replace('window id# ', '');
+    return str.split(', ');
+}
+//# sourceMappingURL=x11Wrapper.js.map
 
-// 500kb
-var MAX_BUFFER = 1024 * 500;
-var EXEC_OPTS = {
-    maxBuffer: MAX_BUFFER,
-};
 // display
 // -------
 function getConnectedDisplaysId() {
@@ -677,7 +708,7 @@ function getActiveWindowList() {
         var windowIds, windowList, promises, windowsWithData;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, _getActiveWindowIds()];
+                case 0: return [4 /*yield*/, getActiveWindowIds()];
                 case 1:
                     windowIds = _a.sent();
                     windowList = [];
@@ -708,33 +739,9 @@ function _filterInvalidWindows(win) {
     }
     return (isNormalWindow && isNotExcluded && hasWmClassName);
 }
-function _getActiveWindowIds() {
-    var cmd = 'xprop -root|grep ^_NET_CLIENT_LIST\\(WINDOW\\)';
-    return new Promise(function (fulfill, reject) {
-        child_process.exec(cmd, EXEC_OPTS, function (error, stdout, stderr) {
-            if (error || stderr) {
-                console.error('xprop', error, stderr);
-                reject(error || stderr);
-            }
-            else {
-                var windowIds = _parseWindowIds(stdout);
-                fulfill(windowIds);
-            }
-        });
-    }).catch(_catchGenericErr);
-}
-function _parseWindowIds(stdout) {
-    var str = stdout.replace('_NET_CLIENT_LIST(WINDOW): window id #', '');
-    return str.split(', ');
-}
 function _isExcludedWmClassName(wmClassName) {
     return CFG.WM_CLASS_EXCLUSIONS.indexOf(wmClassName) > -1;
 }
-function _catchGenericErr(err) {
-    console.error('otherCmd: Generic Error', err, err.stack);
-    log('otherCmd:', arguments);
-}
-//# sourceMappingURL=otherCmd.js.map
 
 var findup = require('findup-sync');
 var HOME_DIR = process.env['HOME'];
@@ -745,7 +752,7 @@ var DEFAULT_DESKTOP_FILE_LOCATIONS = [
     '/usr/local/share/applications',
     '/usr/share/app-install',
 ];
-function _catchGenericErr$1(err) {
+function _catchGenericErr(err) {
     console.error('Generic Error in Meta Wrapper', err, err.stack);
     throw err;
 }
@@ -772,7 +779,7 @@ function findDesktopFile(fileName) {
         else {
             fulfill(firstFile);
         }
-    }).catch(_catchGenericErr$1);
+    }).catch(_catchGenericErr);
 }
 function getActiveWindowListFlow() {
     var _this = this;
@@ -833,7 +840,7 @@ function getActiveWindowListFlow() {
                     });
                 }); })];
         });
-    }); }).catch(_catchGenericErr$1);
+    }); }).catch(_catchGenericErr);
 }
 // MIXED
 function _addParsedExecutableFilesFromWmClassNames(windowList) {
@@ -879,7 +886,7 @@ function _addParsedExecutableFilesFromWmClassNames(windowList) {
                 case 8: return [2 /*return*/];
             }
         });
-    }); }).catch(_catchGenericErr$1);
+    }); }).catch(_catchGenericErr);
 }
 function _parseExecutableFileFromWmClassName(wmClassName) {
     return new Promise(function (fulfill, reject) {
@@ -899,7 +906,7 @@ function _parseExecutableFileFromWmClassName(wmClassName) {
                 fulfill(fileName + '.desktop');
             }
         }
-    }).catch(_catchGenericErr$1);
+    }).catch(_catchGenericErr);
 }
 function _parseSimpleWindowName(wmClassName) {
     var splitValues = wmClassName.split('.');
@@ -920,7 +927,7 @@ function _parseChromeAppDesktopFileName(fileName) {
         findDesktopFile(locateStr)
             .then(resolve)
             .catch(reject);
-    }).catch(_catchGenericErr$1);
+    }).catch(_catchGenericErr);
 }
 //# sourceMappingURL=metaWrapper.js.map
 
@@ -958,7 +965,7 @@ var index = {
 };
 // HELPER
 // --------
-function _catchGenericErr$2(err) {
+function _catchGenericErr$1(err) {
     console.error('Generic Error in Main Handler', err, err.stack);
     throw err;
 }
@@ -1096,7 +1103,7 @@ function restoreSession(sessionName, isCloseAllOpenWindows) {
             })
                 .then(fulfill);
         });
-    }).catch(_catchGenericErr$2);
+    }).catch(_catchGenericErr$1);
 }
 function removeSession(sessionName) {
     return new Promise(function (fulfill, reject) {
@@ -1109,7 +1116,7 @@ function removeSession(sessionName) {
                 fulfill();
             }
         });
-    }).catch(_catchGenericErr$2);
+    }).catch(_catchGenericErr$1);
 }
 function _closeAllWindowsIfSet(isCloseAll) {
     return new Promise(function (fulfill, reject) {
@@ -1129,7 +1136,7 @@ function _closeAllWindowsIfSet(isCloseAll) {
         else {
             fulfill();
         }
-    }).catch(_catchGenericErr$2);
+    }).catch(_catchGenericErr$1);
 }
 function _waitForAllAppsToClose() {
     var totalTimeWaited = 0;
@@ -1158,7 +1165,7 @@ function _waitForAllAppsToClose() {
         }
         // start once initially
         pollAllAppsClosed();
-    }).catch(_catchGenericErr$2);
+    }).catch(_catchGenericErr$1);
 }
 function _waitForAllAppsToStart(savedWindowList) {
     log('Waiting for all applications to start...');
@@ -1196,7 +1203,7 @@ function _waitForAllAppsToStart(savedWindowList) {
         }
         // start once initially
         pollAllAppsStarted(savedWindowList, 500);
-    }).catch(_catchGenericErr$2);
+    }).catch(_catchGenericErr$1);
 }
 function _getNotStartedApps(savedWindowList, currentWindowList) {
     var nonStartedApps = [];
@@ -1242,7 +1249,7 @@ function _guessAndSetDesktopFilePaths(windowList, inputHandler) {
                     return [3 /*break*/, 5];
                 case 4:
                     e_1 = _a.sent();
-                    _catchGenericErr$2(e_1);
+                    _catchGenericErr$1(e_1);
                     return [3 /*break*/, 5];
                 case 5:
                     _i++;
@@ -1278,7 +1285,7 @@ function _guessFilePath(win, inputHandler) {
         else {
             callInputHandler(true, win.executableFile);
         }
-    }).catch(_catchGenericErr$2);
+    }).catch(_catchGenericErr$1);
 }
 // TODO check for how many instances there should be running of a program
 function _startSessionPrograms(windowList, currentWindowList) {
@@ -1374,7 +1381,7 @@ function _restoreWindowPositions(savedWindowList) {
                     return [3 /*break*/, 5];
                 case 4:
                     e_2 = _a.sent();
-                    _catchGenericErr$2(e_2);
+                    _catchGenericErr$1(e_2);
                     return [3 /*break*/, 5];
                 case 5:
                     _i++;

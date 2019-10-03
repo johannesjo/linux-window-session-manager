@@ -2,11 +2,11 @@
 
 import {IS_DEBUG} from './isDebug';
 import {CFG} from './config';
-import {exec, spawn} from 'child_process';
+import {spawn} from 'child_process';
 import {parseCmdArgs} from './parseCmdToSpawn';
 import {WinObj, WinObjIdOnly} from './model';
 import {log} from './log';
-import {getDisplays, getWindowInfo} from './x11Wrapper';
+import {getActiveWindowIds, getDisplays, getWindowInfo} from './x11Wrapper';
 
 // 500kb
 const MAX_BUFFER = 1024 * 500;
@@ -104,7 +104,7 @@ export function startProgram(executableFile: string, desktopFilePath: string): P
 // GET ACTIVE WINDOW LIST
 // ----------------------
 export async function getActiveWindowList(): Promise<WinObj[]> {
-    const windowIds = await _getActiveWindowIds();
+    const windowIds = await getActiveWindowIds();
     const windowList: WinObjIdOnly[] = [];
     windowIds.forEach((windowId) => {
         windowList.push({
@@ -137,25 +137,6 @@ function _filterInvalidWindows(win: WinObj): boolean {
     return (isNormalWindow && isNotExcluded && hasWmClassName);
 }
 
-function _getActiveWindowIds(): Promise<string[] | any> {
-    const cmd = 'xprop -root|grep ^_NET_CLIENT_LIST\\(WINDOW\\)';
-    return new Promise((fulfill, reject) => {
-        exec(cmd, EXEC_OPTS, (error, stdout, stderr) => {
-            if (error || stderr) {
-                console.error('xprop', error, stderr);
-                reject(error || stderr);
-            } else {
-                const windowIds = _parseWindowIds(stdout);
-                fulfill(windowIds);
-            }
-        });
-    }).catch(_catchGenericErr);
-}
-
-function _parseWindowIds(stdout): string[] {
-    const str = stdout.replace('_NET_CLIENT_LIST(WINDOW): window id #', '');
-    return str.split(', ');
-}
 
 function _isExcludedWmClassName(wmClassName): boolean {
     return CFG.WM_CLASS_EXCLUSIONS.indexOf(wmClassName) > -1;

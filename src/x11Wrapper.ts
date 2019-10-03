@@ -80,6 +80,11 @@ export function getWindowGeometry(winId) {
     }).catch(catchGenericErr);
 }
 
+export async function getActiveWindowIds(): Promise<string[]> {
+    const idStr = await getProp(root, 498);
+    return _parseWindowIds(idStr);
+}
+
 export function restoreWindowPosition(win) {
     log('Restoring window position for "' + win.wmClassName + '"');
     const STATES_TO_RESET = [
@@ -186,6 +191,14 @@ export async function getWindowInfo(wid): Promise<any> {
     });
 }
 
+export async function getProp(id = root, propId: number): Promise<any> {
+    const propVal = await _xCbToPromise(X.GetProperty, 0, id, propId, 0, 0, 10000000);
+    const typeName = await _xCbToPromise(X.GetAtomName, propVal.type);
+    return await _decodeProperty(typeName, propVal.data);
+}
+
+// HELPER
+// ------
 function _xCbToPromise(fn, ...args): any {
     return new Promise((fulfill, reject) => {
         fn.apply(X, [...args, (err, res) => {
@@ -194,9 +207,6 @@ function _xCbToPromise(fn, ...args): any {
     });
 }
 
-
-// HELPER
-// ------
 function _counter(initialVal, modifier) {
     // to start at val we need to subtract the modifier first
     let val = initialVal - modifier;
@@ -333,6 +343,11 @@ async function _decodeProperty(type, data): Promise<any> {
 
 function quotize(i) {
     return '\"' + i + '\"';
+}
+
+function _parseWindowIds(strIn): string[] {
+    const str = strIn.replace('window id# ', '');
+    return str.split(', ');
 }
 
 //const testFn = wrapX11(closeWindow);
