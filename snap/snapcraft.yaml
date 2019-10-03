@@ -16,6 +16,7 @@ apps:
       - wayland
       - home
       - x11
+      - network
 
 parts:
   cmd:

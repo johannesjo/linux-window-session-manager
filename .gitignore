@@ -2,3 +2,6 @@ sessionStore/
 tmp/
 npm-debug.log
 snap/.snapcraft
+parts
+prime
+stage
