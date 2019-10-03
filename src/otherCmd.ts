@@ -6,7 +6,7 @@ import {exec, spawn} from 'child_process';
 import {parseCmdArgs} from './parseCmdToSpawn';
 import {WinObj, WinObjIdOnly} from './model';
 import {log} from './log';
-import {getWindowInfo} from './x11Wrapper';
+import {getDisplays, getWindowInfo} from './x11Wrapper';
 
 // 500kb
 const MAX_BUFFER = 1024 * 500;
@@ -17,40 +17,11 @@ const EXEC_OPTS = {
 
 // display
 // -------
-export function getConnectedDisplaysId(): Promise<string | any> {
-    const cmd = CFG.CMD.GET_DISPLAY_ID;
-    return new Promise((fulfill, reject) => {
-        exec(cmd, EXEC_OPTS, (error, stdout, stderr) => {
-            if (error || stderr) {
-                console.error(error, stderr);
-                reject(error || stderr);
-            } else {
-                const connectedDisplaysId = _parseConnectedDisplaysId(stdout);
-                fulfill(connectedDisplaysId);
-            }
-        });
-    }).catch(_catchGenericErr);
+export function getConnectedDisplaysId(): string {
+    const displays = getDisplays();
+    return displays.map(screen => screen.pixel_width + 'x' + screen.pixel_height).join(';');
 }
 
-function _parseConnectedDisplaysId(stdout): string {
-    let idString = '';
-    const RESOLUTION_REG_EX = /[0-9]{3,5}x[0-9]{3,5}/;
-    const lines = stdout.split('\n');
-    lines.forEach((line) => {
-        if (line !== '') {
-            const resolution = RESOLUTION_REG_EX.exec(line);
-            // only do this if we have a resolution as that means that the display is active
-            if (resolution) {
-                idString += resolution + ';';
-            }
-        }
-    });
-
-    if (idString.length) {
-        // cut off last semicolon
-        return idString.substring(0, idString.length - 1);
-    }
-}
 
 // Other
 // --------

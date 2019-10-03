@@ -88,14 +88,10 @@ function saveSession(sessionName: string, inputHandlers): Promise<any> {
         })
         .then((windowList) => {
             // desktop file paths and connected display ids
-            return Promise.all([
-                _guessAndSetDesktopFilePaths(windowList, inputHandlers.desktopFilePath),
-                getConnectedDisplaysId(),
-            ]);
+            return _guessAndSetDesktopFilePaths(windowList, inputHandlers.desktopFilePath);
         })
-        .then((results) => {
-            const windowList = results[0];
-            const connectedDisplaysId = results[1];
+        .then((windowList) => {
+            const connectedDisplaysId = getConnectedDisplaysId();
             return saveSessionForDisplayToDb(sessionToHandle, connectedDisplaysId, windowList);
         })
         .catch((err) => {

@@ -7,6 +7,7 @@ const x11 = require('x11');
 
 export let X;
 let root;
+let display;
 
 
 // export const getWindowInfo = wrapX11(_getWindowInfo);
@@ -27,11 +28,13 @@ export function initX11(): Promise<any> {
         return initPromise;
     }
     initPromise = new Promise((fulfill, reject) => {
-        x11.createClient((err, display) => {
+        x11.createClient((err, displayIn) => {
             if (err) {
                 reject(err);
             } else {
+                display = displayIn;
                 X = display.client;
+
                 root = display.screen[0].root;
                 isClientInitialized = true;
                 fulfill();
@@ -45,6 +48,13 @@ export function initX11(): Promise<any> {
 
 // METHODS
 // -------
+export function getDisplays(): any[] {
+    if (!display) {
+        throw new Error('X11 not initialized / No screen available');
+    }
+    return display.screen;
+}
+
 export function getWindowGeometry(winId) {
     const geo: any = {};
 

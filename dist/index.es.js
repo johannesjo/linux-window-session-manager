@@ -138,10 +138,7 @@ var DEFAULT_CFG = {
         "/var/lib/snapd/desktop/applications",
         "/var/lib/flatpak/app",
         "/snap/bin"
-    ],
-    "CMD": {
-        "GET_DISPLAY_ID": "xrandr --query | grep '[^s]connected '"
-    }
+    ]
 };
 //# sourceMappingURL=defaultConfig.js.map
 
@@ -232,6 +229,7 @@ function _mergeQuotedStringParams(args) {
 var x11 = require('x11');
 var X;
 var root;
+var display;
 // export const getWindowInfo = wrapX11(_getWindowInfo);
 var getX = function () { return X; };
 function catchGenericErr(err) {
@@ -247,11 +245,12 @@ function initX11() {
         return initPromise;
     }
     initPromise = new Promise(function (fulfill, reject) {
-        x11.createClient(function (err, display) {
+        x11.createClient(function (err, displayIn) {
             if (err) {
                 reject(err);
             }
             else {
+                display = displayIn;
                 X = display.client;
                 root = display.screen[0].root;
                 isClientInitialized = true;
@@ -265,6 +264,12 @@ function initX11() {
 }
 // METHODS
 // -------
+function getDisplays() {
+    if (!display) {
+        throw new Error('X11 not initialized / No screen available');
+    }
+    return display.screen;
+}
 function getWindowGeometry(winId) {
     var geo = {};
     return new Promise(function (fulfill, reject) {
@@ -578,37 +583,8 @@ var EXEC_OPTS = {
 // display
 // -------
 function getConnectedDisplaysId() {
-    var cmd = CFG.CMD.GET_DISPLAY_ID;
-    return new Promise(function (fulfill, reject) {
-        exec(cmd, EXEC_OPTS, function (error, stdout, stderr) {
-            if (error || stderr) {
-                console.error(error, stderr);
-                reject(error || stderr);
-            }
-            else {
-                var connectedDisplaysId = _parseConnectedDisplaysId(stdout);
-                fulfill(connectedDisplaysId);
-            }
-        });
-    }).catch(_catchGenericErr);
-}
-function _parseConnectedDisplaysId(stdout) {
-    var idString = '';
-    var RESOLUTION_REG_EX = /[0-9]{3,5}x[0-9]{3,5}/;
-    var lines = stdout.split('\n');
-    lines.forEach(function (line) {
-        if (line !== '') {
-            var resolution = RESOLUTION_REG_EX.exec(line);
-            // only do this if we have a resolution as that means that the display is active
-            if (resolution) {
-                idString += resolution + ';';
-            }
-        }
-    });
-    if (idString.length) {
-        // cut off last semicolon
-        return idString.substring(0, idString.length - 1);
-    }
+    var displays = getDisplays();
+    return displays.map(function (screen) { return screen.pixel_width + 'x' + screen.pixel_height; }).join(';');
 }
 // Other
 // --------
@@ -1017,14 +993,10 @@ function saveSession(sessionName, inputHandlers) {
     })
         .then(function (windowList) {
         // desktop file paths and connected display ids
-        return Promise.all([
-            _guessAndSetDesktopFilePaths(windowList, inputHandlers.desktopFilePath),
-            getConnectedDisplaysId(),
-        ]);
+        return _guessAndSetDesktopFilePaths(windowList, inputHandlers.desktopFilePath);
     })
-        .then(function (results) {
-        var windowList = results[0];
-        var connectedDisplaysId = results[1];
+        .then(function (windowList) {
+        var connectedDisplaysId = getConnectedDisplaysId();
         return saveSessionForDisplayToDb(sessionToHandle, connectedDisplaysId, windowList);
     })
         .catch(function (err) {

@@ -52,8 +52,5 @@ export const DEFAULT_CFG = {
         "/var/lib/snapd/desktop/applications",
         "/var/lib/flatpak/app",
         "/snap/bin"
-    ],
-    "CMD": {
-        "GET_DISPLAY_ID": "xrandr --query | grep '[^s]connected '"
-    }
+    ]
 };
