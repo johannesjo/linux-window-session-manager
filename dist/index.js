@@ -76,6 +76,7 @@ function mkdirSync(dirPath) {
         }
     }
 }
+//# sourceMappingURL=utility.js.map
 
 var DEFAULT_CFG = {
     "GIVE_X11_TIME_TIMEOUT": 80,
@@ -137,6 +138,7 @@ var DEFAULT_CFG = {
         "XPROP_ID": "xprop -id"
     }
 };
+//# sourceMappingURL=defaultConfig.js.map
 
 var log = function () {
     var args = [];
@@ -145,6 +147,7 @@ var log = function () {
     }
     return console.log.apply(console, args);
 };
+//# sourceMappingURL=log.js.map
 
 var cfg;
 var CFG_DATA_DIR = _getUserHome() + '/.lwsm';
@@ -175,8 +178,10 @@ var CFG = cfg;
 function _getUserHome() {
     return process.env[(process.platform === 'win32') ? 'USERPROFILE' : 'HOME'];
 }
+//# sourceMappingURL=config.js.map
 
 var IS_DEBUG = process.argv.indexOf('--debug') > -1;
+//# sourceMappingURL=isDebug.js.map
 
 var parseCmdArgs = function (cmd) {
     var cmdAllSplit = cmd.split(/ /);
@@ -217,6 +222,7 @@ function _mergeQuotedStringParams(args) {
     });
     return newArgs;
 }
+//# sourceMappingURL=parseCmdToSpawn.js.map
 
 // 500kb
 var MAX_BUFFER = 1024 * 500;
@@ -401,7 +407,7 @@ function _isExcludedWmClassName(wmClassName) {
 }
 function _catchGenericErr(err) {
     console.error('otherCmd: Generic Error', err, err.stack);
-    console.log('otherCmd:', arguments);
+    log('otherCmd:', arguments);
 }
 
 var x11 = require('x11');
@@ -600,6 +606,7 @@ function _sendX11ClientMessage(wid, eventName, eventProperties, optionalEventMas
         });
     }).catch(catchGenericErr);
 }
+//# sourceMappingURL=x11Wrapper.js.map
 
 var findup = require('findup-sync');
 var HOME_DIR = process.env['HOME'];
@@ -748,7 +755,6 @@ function _addParsedExecutableFilesFromWmClassNames(windowList) {
 }
 function _parseExecutableFileFromWmClassName(wmClassName) {
     return new Promise(function (fulfill, reject) {
-        console.log(wmClassName);
         var executableFileFromMap = CFG.WM_CLASS_AND_EXECUTABLE_FILE_MAP[wmClassName];
         if (executableFileFromMap) {
             fulfill(executableFileFromMap);
@@ -788,6 +794,7 @@ function _parseChromeAppDesktopFileName(fileName) {
             .catch(reject);
     }).catch(_catchGenericErr$1);
 }
+//# sourceMappingURL=metaWrapper.js.map
 
 // import * as Store from 'jfs';
 var Store = require('jfs');
@@ -1030,7 +1037,7 @@ function _waitForAllAppsToClose() {
     }).catch(_catchGenericErr$2);
 }
 function _waitForAllAppsToStart(savedWindowList) {
-    log('Wait for all applications to start');
+    log('Waiting for all applications to start...');
     var totalTimeWaited = 0;
     var timeout;
     return new Promise(function (fulfill, reject) {
@@ -1252,5 +1259,6 @@ function _restoreWindowPositions(savedWindowList) {
         });
     });
 }
+//# sourceMappingURL=index.js.map
 
 module.exports = index;

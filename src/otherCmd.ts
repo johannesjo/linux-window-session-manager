@@ -5,6 +5,7 @@ import {CFG} from './config';
 import {exec, spawn} from 'child_process';
 import {parseCmdArgs} from './parseCmdToSpawn';
 import {WinObj, WinObjIdOnly} from './model';
+import {log} from './log';
 
 // 500kb
 const MAX_BUFFER = 1024 * 500;
@@ -197,5 +198,5 @@ function _isExcludedWmClassName(wmClassName): boolean {
 
 function _catchGenericErr(err): void {
     console.error('otherCmd: Generic Error', err, err.stack);
-    console.log('otherCmd:', arguments);
+    log('otherCmd:', arguments);
 }

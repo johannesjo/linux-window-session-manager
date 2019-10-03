@@ -269,7 +269,7 @@ function _waitForAllAppsToClose(): Promise<unknown> {
 }
 
 function _waitForAllAppsToStart(savedWindowList): Promise<WinObj[] | unknown> {
-    log('Wait for all applications to start');
+    log('Waiting for all applications to start...');
 
     let totalTimeWaited = 0;
     let timeout;

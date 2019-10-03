@@ -122,8 +122,6 @@ function _addParsedExecutableFilesFromWmClassNames(windowList): Promise<any> {
 
 function _parseExecutableFileFromWmClassName(wmClassName): Promise<any> {
     return new Promise((fulfill, reject) => {
-        console.log(wmClassName);
-
         const executableFileFromMap = CFG.WM_CLASS_AND_EXECUTABLE_FILE_MAP[wmClassName];
         if (executableFileFromMap) {
             fulfill(executableFileFromMap);
