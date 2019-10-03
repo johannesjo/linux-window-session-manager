@@ -10,8 +10,6 @@ import {WinObj} from './model';
 const Store = require('jfs');
 
 
-CFG;
-
 // create data store
 const db = new Store(SESSION_DATA_DIR, {pretty: CFG.SAVE_SESSION_IN_PRETTY_FORMAT});
 
@@ -275,7 +273,8 @@ function _waitForAllAppsToStart(savedWindowList): Promise<WinObj[] | unknown> {
     let timeout;
 
     return new Promise((fulfill, reject) => {
-        function pollAllAppsStarted(savedWindowList) {
+        function pollAllAppsStarted(savedWindowList: WinObj[], timeoutDuration = CFG.POLL_ALL_APPS_STARTED_INTERVAL) {
+
             timeout = setTimeout(() => {
                 // clear timeout to be save
                 if (timeout) {
@@ -300,11 +299,11 @@ function _waitForAllAppsToStart(savedWindowList): Promise<WinObj[] | unknown> {
                         }
                     })
                     .catch(reject);
-            }, CFG.POLL_ALL_APPS_STARTED_INTERVAL);
+            }, timeoutDuration);
         }
 
         // start once initially
-        pollAllAppsStarted(savedWindowList);
+        pollAllAppsStarted(savedWindowList, 500);
     }).catch(_catchGenericErr);
 }
 

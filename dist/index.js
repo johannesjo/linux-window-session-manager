@@ -409,6 +409,7 @@ function _catchGenericErr(err) {
     console.error('otherCmd: Generic Error', err, err.stack);
     log('otherCmd:', arguments);
 }
+//# sourceMappingURL=otherCmd.js.map
 
 var x11 = require('x11');
 var X;
@@ -1041,7 +1042,8 @@ function _waitForAllAppsToStart(savedWindowList) {
     var totalTimeWaited = 0;
     var timeout;
     return new Promise(function (fulfill, reject) {
-        function pollAllAppsStarted(savedWindowList) {
+        function pollAllAppsStarted(savedWindowList, timeoutDuration) {
+            if (timeoutDuration === void 0) { timeoutDuration = CFG.POLL_ALL_APPS_STARTED_INTERVAL; }
             timeout = setTimeout(function () {
                 // clear timeout to be save
                 if (timeout) {
@@ -1067,10 +1069,10 @@ function _waitForAllAppsToStart(savedWindowList) {
                     }
                 })
                     .catch(reject);
-            }, CFG.POLL_ALL_APPS_STARTED_INTERVAL);
+            }, timeoutDuration);
         }
         // start once initially
-        pollAllAppsStarted(savedWindowList);
+        pollAllAppsStarted(savedWindowList, 500);
     }).catch(_catchGenericErr$2);
 }
 function _getNotStartedApps(savedWindowList, currentWindowList) {
@@ -1259,6 +1261,5 @@ function _restoreWindowPositions(savedWindowList) {
         });
     });
 }
-//# sourceMappingURL=index.js.map
 
 module.exports = index;
