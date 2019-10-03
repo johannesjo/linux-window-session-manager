@@ -135,6 +135,64 @@ export function setState(wid, actionStr, statesToHandle) {
     }
 }
 
+
+// "WM_CLASS(STRING)": "wmClassName",
+//   "_NET_WM_STATE(ATOM)": "states",
+//   "_NET_WM_DESKTOP(CARDINAL)": "wmCurrentDesktopNr",
+//   "WM_NAME(UTF8_STRING)": "wmTitle",
+//   "_NET_WM_PID(CARDINAL)": "wmPid",
+//   "_NET_WM_WINDOW_TYPE(ATOM)": "wmType",
+//   "_BAMF_DESKTOP_FILE(STRING)": "executableFile"
+export async function getWindowInfo(wid): Promise<any> {
+
+    // X.GetWindowAttributes(wid, function (err, attrs) {
+    //   console.log(err, attrs);
+    // });
+
+    // X.GetGeometry(wid, function (err, clientGeom) {
+    //   console.log("window geometry: ", clientGeom);
+    // });
+
+    // X.GetProperty(0, wid, X.atoms.WM_CLASS, X.atoms.STRING, 0, 10000000, function (err, prop) {
+    //   var propvalget = prop.data.toString();
+    //   console.log(propvalget);
+    //   console.log(propvalget.split('\u0000'));
+    // });
+
+
+    const props: any[] = await _xCbToPromise(X.ListProperties, wid);
+
+    const promises = props.map(async function (p) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const propVal = await _xCbToPromise(X.GetProperty, 0, wid, p, 0, 0, 10000000);
+                const typeName = await _xCbToPromise(X.GetAtomName, propVal.type);
+                const propName = await _xCbToPromise(X.GetAtomName, p);
+                // console.log(propVal, typeName, propName);
+                const decodedData = await _decodeProperty(typeName, propVal.data);
+                // console.log(decodedData);
+                resolve(propName + '(' + typeName + ') = ' + decodedData);
+            } catch (e) {
+                reject(e);
+            }
+        });
+    });
+
+
+    return Promise.all(promises).then(results => {
+        return results.join('\n');
+    });
+}
+
+function _xCbToPromise(fn, ...args): any {
+    return new Promise((fulfill, reject) => {
+        fn.apply(X, [...args, (err, res) => {
+            return err ? reject(err) : fulfill(res);
+        }]);
+    });
+}
+
+
 // HELPER
 // ------
 function _counter(initialVal, modifier) {
@@ -164,67 +222,6 @@ function _getAtoms(list, cb) {
         }
     };
     getAtom();
-}
-
-// "WM_CLASS(STRING)": "wmClassName",
-//   "_NET_WM_STATE(ATOM)": "states",
-//   "_NET_WM_DESKTOP(CARDINAL)": "wmCurrentDesktopNr",
-//   "WM_NAME(UTF8_STRING)": "wmTitle",
-//   "_NET_WM_PID(CARDINAL)": "wmPid",
-//   "_NET_WM_WINDOW_TYPE(ATOM)": "wmType",
-//   "_BAMF_DESKTOP_FILE(STRING)": "executableFile"
-function _getWindowInfo(wid) {
-
-    // X.GetWindowAttributes(wid, function (err, attrs) {
-    //   console.log(err, attrs);
-    // });
-
-    // X.GetGeometry(wid, function (err, clientGeom) {
-    //   console.log("window geometry: ", clientGeom);
-    // });
-
-    // X.GetProperty(0, wid, X.atoms.WM_CLASS, X.atoms.STRING, 0, 10000000, function (err, prop) {
-    //   var propvalget = prop.data.toString();
-    //   console.log(propvalget);
-    //   console.log(propvalget.split('\u0000'));
-    // });
-
-    // X.ListProperties(wid, function (err, props) {
-    //   props.forEach(function (p) {
-    //     X.GetProperty(0, wid, p, 0, 0, 10000000, function (err, propValue) {
-    //       X.GetAtomName(propValue.type, function (err, typeName) {
-    //         X.GetAtomName(p, function (err, propName) {
-    //           // decodeProperty(typeName, propValue.data, function (decodedData) {
-    //           //   console.log(propName + '(' + typeName + ') = ' + decodedData);
-    //           // });
-    //         });
-    //       });
-    //     });
-    //   })
-    // });
-    // X.on('event', console.log);
-    // X.on('error', console.error);
-
-
-    // const properties = new Promise((fulfil) => {
-    //   X.ListProperties(wid, function (err, props) {
-    //     setTimeout(() => {
-    //       fulfil(props);
-    //     }, 200);
-    //   });
-    // });
-    //
-    // properties.then((props) => {
-    //   console.log(props);
-    //   props.forEach((p) => {
-    //     X.GetProperty(0, wid, p, X.atoms.STRING, 0, 100000000, function (err, prop) {
-    //       var propvalget = prop.data.toString();
-    //       console.log(propvalget);
-    //       console.log(propvalget.split('\u0000'));
-    //     });
-    //   });
-    // });
-
 }
 
 
@@ -278,6 +275,62 @@ function _sendX11ClientMessage(wid, eventName, eventProperties = [], optionalEve
             }
         });
     }).catch(catchGenericErr);
+}
+
+async function _decodeProperty(type, data): Promise<any> {
+    switch (type) {
+        case 'STRING': {
+            const result = [];
+            let s = '';
+            for (let i = 0; i < data.length; ++i) {
+                if (data[i] == 0) {
+                    result.push(s);
+                    s = '';
+                    continue;
+                }
+                s += String.fromCharCode(data[i]);
+            }
+            result.push(s);
+            return result.map(quotize).join(', ');
+        }
+        case 'ATOM':
+            if (data.length > 32) {
+                return 'LOOOOOOOOOOOOOOOOOOOOOOOOOOOOOONG';
+            }
+
+            const promises = [];
+            for (let i = 0; i < data.length; i += 4) {
+                const a = data.unpack('L', i)[0];
+                promises.push(_xCbToPromise(X.GetAtomName, a));
+            }
+            return await Promise.all(promises).then(res => {
+                return res.join(', ');
+            });
+
+        case 'CARDINAL':
+        case 'INTEGER': {
+            const res = [];
+            for (let i = 0; i < data.length; i += 4) {
+                res.push(data.unpack('L', i)[0]);
+            }
+            return res.join(', ');
+        }
+        case 'WINDOW':
+            const res = [];
+            for (let i = 0; i < data.length; i += 4) {
+                res.push(data.unpack('L', i)[0]);
+            }
+            return 'window id# ' + res.map(function (n) {
+                return '0x' + n.toString(16);
+            }).join(', ');
+
+        default:
+            return 'WTF ' + type;
+    }
+}
+
+function quotize(i) {
+    return '\"' + i + '\"';
 }
 
 //const testFn = wrapX11(closeWindow);

@@ -6,6 +6,7 @@ import {exec, spawn} from 'child_process';
 import {parseCmdArgs} from './parseCmdToSpawn';
 import {WinObj, WinObjIdOnly} from './model';
 import {log} from './log';
+import {getWindowInfo} from './x11Wrapper';
 
 // 500kb
 const MAX_BUFFER = 1024 * 500;
@@ -53,60 +54,53 @@ function _parseConnectedDisplaysId(stdout): string {
 
 // Other
 // --------
-export function getAdditionalMetaDataForWin(win: WinObjIdOnly): Promise<WinObj | unknown> {
-    const tmpWin: any = {...win};
-    return new Promise((fulfill, reject) => {
-        exec(`${CFG.CMD.XPROP_ID} ${tmpWin.windowId}`, EXEC_OPTS, (error, stdout, stderr) => {
-            if (error || stderr) {
-                console.error(tmpWin, error, stderr);
-                reject(error || stderr);
+export async function getAdditionalMetaDataForWin(win: WinObjIdOnly): Promise<WinObj | unknown> {
+    const stdout = await getWindowInfo(win.windowId);
+    const lines = stdout.split('\n');
+    const winCopy: any = {...win};
+
+    lines.forEach((line) => {
+        const words = line.split(' ');
+        const propertyName = words[0];
+
+        // remove property name and "="
+        words.splice(0, 2);
+        const value = words.join(' ');
+        const propertyNameFromMap = CFG.WM_META_MAP[propertyName];
+        // parse wmClassName
+        if (propertyName === 'WM_CLASS(STRING)') {
+            const propertyNameFromMap = CFG.WM_META_MAP[propertyName];
+            const classNames = value.split(', ');
+            let className = '';
+            classNames.forEach((state) => {
+                if (state !== '') {
+                    className += state.replace(/"/g, '') + '.';
+                }
+            });
+            win[propertyNameFromMap] = className.substr(0, className.length - 2);
+        }
+        // parse states
+        else if (propertyName === '_NET_WM_STATE(ATOM)') {
+            const states = value.split(', ');
+            win.states = [];
+            states.forEach((state) => {
+                if (state !== '') {
+                    win.states.push(state);
+                }
+            });
+        }
+        // parse simple strings and integers
+        else if (propertyNameFromMap) {
+            // special handle number types
+            if (CFG.WM_META_MAP_NUMBER_TYPES.indexOf(propertyName) > -1) {
+                win[propertyNameFromMap] = parseInt(value, 10);
             } else {
-                const lines = stdout.split('\n');
-
-                lines.forEach((line) => {
-                    const words = line.split(' ');
-                    const propertyName = words[0];
-
-                    // remove property name and "="
-                    words.splice(0, 2);
-                    const value = words.join(' ');
-                    const propertyNameFromMap = CFG.WM_META_MAP[propertyName];
-                    // parse wmClassName
-                    if (propertyName === 'WM_CLASS(STRING)') {
-                        const propertyNameFromMap = CFG.WM_META_MAP[propertyName];
-                        const classNames = value.split(', ');
-                        let className = '';
-                        classNames.forEach((state) => {
-                            if (state !== '') {
-                                className += state.replace(/"/g, '') + '.';
-                            }
-                        });
-                        tmpWin[propertyNameFromMap] = className.substr(0, className.length - 1);
-                    }
-                    // parse states
-                    else if (propertyName === '_NET_WM_STATE(ATOM)') {
-                        const states = value.split(', ');
-                        tmpWin.states = [];
-                        states.forEach((state) => {
-                            if (state !== '') {
-                                tmpWin.states.push(state);
-                            }
-                        });
-                    }
-                    // parse simple strings and integers
-                    else if (propertyNameFromMap) {
-                        // special handle number types
-                        if (CFG.WM_META_MAP_NUMBER_TYPES.indexOf(propertyName) > -1) {
-                            tmpWin[propertyNameFromMap] = parseInt(value, 10);
-                        } else {
-                            tmpWin[propertyNameFromMap] = value;
-                        }
-                    }
-                });
-                fulfill(tmpWin);
+                win[propertyNameFromMap] = value;
             }
-        });
-    }).catch(_catchGenericErr);
+        }
+    });
+    // console.log(win);
+    return win;
 }
 
 // TODO prettify args structure
