@@ -54,7 +54,7 @@ function _parseConnectedDisplaysId(stdout): string {
 
 // Other
 // --------
-export async function getAdditionalMetaDataForWin(win: WinObjIdOnly): Promise<WinObj | unknown> {
+export async function getAdditionalMetaDataForWin(win: WinObjIdOnly): Promise<WinObj> {
     const stdout = await getWindowInfo(win.windowId);
     const lines = stdout.split('\n');
     const winCopy: any = {...win};
@@ -77,15 +77,15 @@ export async function getAdditionalMetaDataForWin(win: WinObjIdOnly): Promise<Wi
                     className += state.replace(/"/g, '') + '.';
                 }
             });
-            win[propertyNameFromMap] = className.substr(0, className.length - 2);
+            winCopy[propertyNameFromMap] = className.substr(0, className.length - 2);
         }
         // parse states
         else if (propertyName === '_NET_WM_STATE(ATOM)') {
             const states = value.split(', ');
-            win.states = [];
+            winCopy.states = [];
             states.forEach((state) => {
                 if (state !== '') {
-                    win.states.push(state);
+                    winCopy.states.push(state);
                 }
             });
         }
@@ -93,14 +93,14 @@ export async function getAdditionalMetaDataForWin(win: WinObjIdOnly): Promise<Wi
         else if (propertyNameFromMap) {
             // special handle number types
             if (CFG.WM_META_MAP_NUMBER_TYPES.indexOf(propertyName) > -1) {
-                win[propertyNameFromMap] = parseInt(value, 10);
+                winCopy[propertyNameFromMap] = parseInt(value, 10);
             } else {
-                win[propertyNameFromMap] = value;
+                winCopy[propertyNameFromMap] = value;
             }
         }
     });
-    // console.log(win);
-    return win;
+    // console.log(winCopy);
+    return winCopy;
 }
 
 // TODO prettify args structure

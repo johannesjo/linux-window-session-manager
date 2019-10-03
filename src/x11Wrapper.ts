@@ -135,49 +135,41 @@ export function setState(wid, actionStr, statesToHandle) {
     }
 }
 
+const PROPS_TO_GET = [
+    'WM_CLASS',
+    '_NET_WM_STATE',
+    '_NET_WM_DESKTOP',
+    'WM_NAME',
+    '_NET_WM_PID',
+    '_NET_WM_WINDOW_TYPE',
+    '_BAMF_DESKTOP_FILE',
+];
 
-// "WM_CLASS(STRING)": "wmClassName",
-//   "_NET_WM_STATE(ATOM)": "states",
-//   "_NET_WM_DESKTOP(CARDINAL)": "wmCurrentDesktopNr",
-//   "WM_NAME(UTF8_STRING)": "wmTitle",
-//   "_NET_WM_PID(CARDINAL)": "wmPid",
-//   "_NET_WM_WINDOW_TYPE(ATOM)": "wmType",
-//   "_BAMF_DESKTOP_FILE(STRING)": "executableFile"
 export async function getWindowInfo(wid): Promise<any> {
-
-    // X.GetWindowAttributes(wid, function (err, attrs) {
-    //   console.log(err, attrs);
-    // });
-
     // X.GetGeometry(wid, function (err, clientGeom) {
     //   console.log("window geometry: ", clientGeom);
     // });
-
-    // X.GetProperty(0, wid, X.atoms.WM_CLASS, X.atoms.STRING, 0, 10000000, function (err, prop) {
-    //   var propvalget = prop.data.toString();
-    //   console.log(propvalget);
-    //   console.log(propvalget.split('\u0000'));
-    // });
-
 
     const props: any[] = await _xCbToPromise(X.ListProperties, wid);
 
     const promises = props.map(async function (p) {
         return new Promise(async (resolve, reject) => {
             try {
-                const propVal = await _xCbToPromise(X.GetProperty, 0, wid, p, 0, 0, 10000000);
-                const typeName = await _xCbToPromise(X.GetAtomName, propVal.type);
                 const propName = await _xCbToPromise(X.GetAtomName, p);
-                // console.log(propVal, typeName, propName);
-                const decodedData = await _decodeProperty(typeName, propVal.data);
-                // console.log(decodedData);
-                resolve(propName + '(' + typeName + ') = ' + decodedData);
+                if (PROPS_TO_GET.includes(propName)) {
+                    const propVal = await _xCbToPromise(X.GetProperty, 0, wid, p, 0, 0, 10000000);
+                    const typeName = await _xCbToPromise(X.GetAtomName, propVal.type);
+                    // console.log(propVal, typeName, propName);
+                    const decodedData = await _decodeProperty(typeName, propVal.data);
+                    resolve(propName + '(' + typeName + ') = ' + decodedData);
+                } else {
+                    resolve('');
+                }
             } catch (e) {
                 reject(e);
             }
         });
     });
-
 
     return Promise.all(promises).then(results => {
         return results.join('\n');

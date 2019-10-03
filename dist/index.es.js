@@ -64,6 +64,14 @@ function __generator(thisArg, body) {
     }
 }
 
+function __spreadArrays() {
+    for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
+    for (var r = Array(s), k = 0, i = 0; i < il; i++)
+        for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)
+            r[k] = a[j];
+    return r;
+}
+
 function mkdirSync(dirPath) {
     try {
         mkdirSync$1(dirPath);
@@ -132,8 +140,7 @@ var DEFAULT_CFG = {
         "/snap/bin"
     ],
     "CMD": {
-        "GET_DISPLAY_ID": "xrandr --query | grep '[^s]connected '",
-        "XPROP_ID": "xprop -id"
+        "GET_DISPLAY_ID": "xrandr --query | grep '[^s]connected '"
     }
 };
 //# sourceMappingURL=defaultConfig.js.map
@@ -221,193 +228,6 @@ function _mergeQuotedStringParams(args) {
     return newArgs;
 }
 //# sourceMappingURL=parseCmdToSpawn.js.map
-
-// 500kb
-var MAX_BUFFER = 1024 * 500;
-var EXEC_OPTS = {
-    maxBuffer: MAX_BUFFER,
-};
-// display
-// -------
-function getConnectedDisplaysId() {
-    var cmd = CFG.CMD.GET_DISPLAY_ID;
-    return new Promise(function (fulfill, reject) {
-        exec(cmd, EXEC_OPTS, function (error, stdout, stderr) {
-            if (error || stderr) {
-                console.error(error, stderr);
-                reject(error || stderr);
-            }
-            else {
-                var connectedDisplaysId = _parseConnectedDisplaysId(stdout);
-                fulfill(connectedDisplaysId);
-            }
-        });
-    }).catch(_catchGenericErr);
-}
-function _parseConnectedDisplaysId(stdout) {
-    var idString = '';
-    var RESOLUTION_REG_EX = /[0-9]{3,5}x[0-9]{3,5}/;
-    var lines = stdout.split('\n');
-    lines.forEach(function (line) {
-        if (line !== '') {
-            var resolution = RESOLUTION_REG_EX.exec(line);
-            // only do this if we have a resolution as that means that the display is active
-            if (resolution) {
-                idString += resolution + ';';
-            }
-        }
-    });
-    if (idString.length) {
-        // cut off last semicolon
-        return idString.substring(0, idString.length - 1);
-    }
-}
-// Other
-// --------
-function getAdditionalMetaDataForWin(win) {
-    var tmpWin = __assign({}, win);
-    return new Promise(function (fulfill, reject) {
-        exec(CFG.CMD.XPROP_ID + " " + tmpWin.windowId, EXEC_OPTS, function (error, stdout, stderr) {
-            if (error || stderr) {
-                console.error(tmpWin, error, stderr);
-                reject(error || stderr);
-            }
-            else {
-                var lines = stdout.split('\n');
-                lines.forEach(function (line) {
-                    var words = line.split(' ');
-                    var propertyName = words[0];
-                    // remove property name and "="
-                    words.splice(0, 2);
-                    var value = words.join(' ');
-                    var propertyNameFromMap = CFG.WM_META_MAP[propertyName];
-                    // parse wmClassName
-                    if (propertyName === 'WM_CLASS(STRING)') {
-                        var propertyNameFromMap_1 = CFG.WM_META_MAP[propertyName];
-                        var classNames = value.split(', ');
-                        var className_1 = '';
-                        classNames.forEach(function (state) {
-                            if (state !== '') {
-                                className_1 += state.replace(/"/g, '') + '.';
-                            }
-                        });
-                        tmpWin[propertyNameFromMap_1] = className_1.substr(0, className_1.length - 1);
-                    }
-                    // parse states
-                    else if (propertyName === '_NET_WM_STATE(ATOM)') {
-                        var states = value.split(', ');
-                        tmpWin.states = [];
-                        states.forEach(function (state) {
-                            if (state !== '') {
-                                tmpWin.states.push(state);
-                            }
-                        });
-                    }
-                    // parse simple strings and integers
-                    else if (propertyNameFromMap) {
-                        // special handle number types
-                        if (CFG.WM_META_MAP_NUMBER_TYPES.indexOf(propertyName) > -1) {
-                            tmpWin[propertyNameFromMap] = parseInt(value, 10);
-                        }
-                        else {
-                            tmpWin[propertyNameFromMap] = value;
-                        }
-                    }
-                });
-                fulfill(tmpWin);
-            }
-        });
-    }).catch(_catchGenericErr);
-}
-// TODO prettify args structure
-function startProgram(executableFile, desktopFilePath) {
-    IS_DEBUG && console.log('DEBUG: startProgram():', executableFile, desktopFilePath);
-    var cmd;
-    var args = [];
-    if (desktopFilePath) {
-        cmd = "awk";
-        args.push('/^Exec=/ {sub("^Exec=", ""); gsub(" ?%[cDdFfikmNnUuv]", ""); exit system($0)}');
-        args.push(desktopFilePath);
-    }
-    else {
-        var parsedCmd = parseCmdArgs(executableFile);
-        cmd = parsedCmd[0];
-        args = parsedCmd[1];
-    }
-    return new Promise(function (fulfill) {
-        spawn(cmd, args, {
-            stdio: 'ignore',
-            detached: true,
-        }).unref();
-        // currently we have no error handling as the process is started detached
-        fulfill();
-    });
-}
-// GET ACTIVE WINDOW LIST
-// ----------------------
-function getActiveWindowList() {
-    return __awaiter(this, void 0, Promise, function () {
-        var windowIds, windowList, promises, windowsWithData;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0: return [4 /*yield*/, _getActiveWindowIds()];
-                case 1:
-                    windowIds = _a.sent();
-                    windowList = [];
-                    windowIds.forEach(function (windowId) {
-                        windowList.push({
-                            windowId: windowId,
-                            windowIdDec: parseInt(windowId, 16),
-                        });
-                    });
-                    promises = windowList.map(function (win) { return getAdditionalMetaDataForWin(win); });
-                    return [4 /*yield*/, Promise.all(promises)];
-                case 2:
-                    windowsWithData = _a.sent();
-                    IS_DEBUG && console.log('DEBUG: getActiveWindowList():', windowList);
-                    return [2 /*return*/, windowsWithData.filter(_filterInvalidWindows)];
-            }
-        });
-    });
-}
-function _filterInvalidWindows(win) {
-    // filter none normal windows, excluded class names and incomplete windows
-    var isNormalWindow = (!win.wmType || win.wmType === '_NET_WM_WINDOW_TYPE_NORMAL');
-    var isNotExcluded = !(_isExcludedWmClassName(win.wmClassName));
-    var hasWmClassName = !!(win.wmClassName);
-    // warn if no wmClassName even though there should be
-    if (isNormalWindow && isNotExcluded && !hasWmClassName) {
-        console.warn(win.windowId + ' has no wmClassName. Win: ', win);
-    }
-    return (isNormalWindow && isNotExcluded && hasWmClassName);
-}
-function _getActiveWindowIds() {
-    var cmd = 'xprop -root|grep ^_NET_CLIENT_LIST\\(WINDOW\\)';
-    return new Promise(function (fulfill, reject) {
-        exec(cmd, EXEC_OPTS, function (error, stdout, stderr) {
-            if (error || stderr) {
-                console.error('xprop', error, stderr);
-                reject(error || stderr);
-            }
-            else {
-                var windowIds = _parseWindowIds(stdout);
-                fulfill(windowIds);
-            }
-        });
-    }).catch(_catchGenericErr);
-}
-function _parseWindowIds(stdout) {
-    var str = stdout.replace('_NET_CLIENT_LIST(WINDOW): window id #', '');
-    return str.split(', ');
-}
-function _isExcludedWmClassName(wmClassName) {
-    return CFG.WM_CLASS_EXCLUSIONS.indexOf(wmClassName) > -1;
-}
-function _catchGenericErr(err) {
-    console.error('otherCmd: Generic Error', err, err.stack);
-    log('otherCmd:', arguments);
-}
-//# sourceMappingURL=otherCmd.js.map
 
 var x11 = require('x11');
 var X;
@@ -528,6 +348,81 @@ function setState(wid, actionStr, statesToHandle) {
         return Promise.resolve();
     }
 }
+var PROPS_TO_GET = [
+    'WM_CLASS',
+    '_NET_WM_STATE',
+    '_NET_WM_DESKTOP',
+    'WM_NAME',
+    '_NET_WM_PID',
+    '_NET_WM_WINDOW_TYPE',
+    '_BAMF_DESKTOP_FILE',
+];
+function getWindowInfo(wid) {
+    return __awaiter(this, void 0, Promise, function () {
+        var props, promises;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, _xCbToPromise(X.ListProperties, wid)];
+                case 1:
+                    props = _a.sent();
+                    promises = props.map(function (p) {
+                        return __awaiter(this, void 0, void 0, function () {
+                            var _this = this;
+                            return __generator(this, function (_a) {
+                                return [2 /*return*/, new Promise(function (resolve, reject) { return __awaiter(_this, void 0, void 0, function () {
+                                        var propName, propVal, typeName, decodedData, e_1;
+                                        return __generator(this, function (_a) {
+                                            switch (_a.label) {
+                                                case 0:
+                                                    _a.trys.push([0, 7, , 8]);
+                                                    return [4 /*yield*/, _xCbToPromise(X.GetAtomName, p)];
+                                                case 1:
+                                                    propName = _a.sent();
+                                                    if (!PROPS_TO_GET.includes(propName)) return [3 /*break*/, 5];
+                                                    return [4 /*yield*/, _xCbToPromise(X.GetProperty, 0, wid, p, 0, 0, 10000000)];
+                                                case 2:
+                                                    propVal = _a.sent();
+                                                    return [4 /*yield*/, _xCbToPromise(X.GetAtomName, propVal.type)];
+                                                case 3:
+                                                    typeName = _a.sent();
+                                                    return [4 /*yield*/, _decodeProperty(typeName, propVal.data)];
+                                                case 4:
+                                                    decodedData = _a.sent();
+                                                    resolve(propName + '(' + typeName + ') = ' + decodedData);
+                                                    return [3 /*break*/, 6];
+                                                case 5:
+                                                    resolve('');
+                                                    _a.label = 6;
+                                                case 6: return [3 /*break*/, 8];
+                                                case 7:
+                                                    e_1 = _a.sent();
+                                                    reject(e_1);
+                                                    return [3 /*break*/, 8];
+                                                case 8: return [2 /*return*/];
+                                            }
+                                        });
+                                    }); })];
+                            });
+                        });
+                    });
+                    return [2 /*return*/, Promise.all(promises).then(function (results) {
+                            return results.join('\n');
+                        })];
+            }
+        });
+    });
+}
+function _xCbToPromise(fn) {
+    var args = [];
+    for (var _i = 1; _i < arguments.length; _i++) {
+        args[_i - 1] = arguments[_i];
+    }
+    return new Promise(function (fulfill, reject) {
+        fn.apply(X, __spreadArrays(args, [function (err, res) {
+                return err ? reject(err) : fulfill(res);
+            }]));
+    });
+}
 // HELPER
 // ------
 function _counter(initialVal, modifier) {
@@ -605,7 +500,263 @@ function _sendX11ClientMessage(wid, eventName, eventProperties, optionalEventMas
         });
     }).catch(catchGenericErr);
 }
-//# sourceMappingURL=x11Wrapper.js.map
+function _decodeProperty(type, data) {
+    return __awaiter(this, void 0, Promise, function () {
+        var _a, result, s, i, promises, i, a, res_1, i, res, i;
+        return __generator(this, function (_b) {
+            switch (_b.label) {
+                case 0:
+                    _a = type;
+                    switch (_a) {
+                        case 'STRING': return [3 /*break*/, 1];
+                        case 'ATOM': return [3 /*break*/, 2];
+                        case 'CARDINAL': return [3 /*break*/, 4];
+                        case 'INTEGER': return [3 /*break*/, 4];
+                        case 'WINDOW': return [3 /*break*/, 5];
+                    }
+                    return [3 /*break*/, 6];
+                case 1:
+                    {
+                        result = [];
+                        s = '';
+                        for (i = 0; i < data.length; ++i) {
+                            if (data[i] == 0) {
+                                result.push(s);
+                                s = '';
+                                continue;
+                            }
+                            s += String.fromCharCode(data[i]);
+                        }
+                        result.push(s);
+                        return [2 /*return*/, result.map(quotize).join(', ')];
+                    }
+                    _b.label = 2;
+                case 2:
+                    if (data.length > 32) {
+                        return [2 /*return*/, 'LOOOOOOOOOOOOOOOOOOOOOOOOOOOOOONG'];
+                    }
+                    promises = [];
+                    for (i = 0; i < data.length; i += 4) {
+                        a = data.unpack('L', i)[0];
+                        promises.push(_xCbToPromise(X.GetAtomName, a));
+                    }
+                    return [4 /*yield*/, Promise.all(promises).then(function (res) {
+                            return res.join(', ');
+                        })];
+                case 3: return [2 /*return*/, _b.sent()];
+                case 4:
+                    {
+                        res_1 = [];
+                        for (i = 0; i < data.length; i += 4) {
+                            res_1.push(data.unpack('L', i)[0]);
+                        }
+                        return [2 /*return*/, res_1.join(', ')];
+                    }
+                    _b.label = 5;
+                case 5:
+                    res = [];
+                    for (i = 0; i < data.length; i += 4) {
+                        res.push(data.unpack('L', i)[0]);
+                    }
+                    return [2 /*return*/, 'window id# ' + res.map(function (n) {
+                            return '0x' + n.toString(16);
+                        }).join(', ')];
+                case 6: return [2 /*return*/, 'WTF ' + type];
+            }
+        });
+    });
+}
+function quotize(i) {
+    return '\"' + i + '\"';
+}
+
+// 500kb
+var MAX_BUFFER = 1024 * 500;
+var EXEC_OPTS = {
+    maxBuffer: MAX_BUFFER,
+};
+// display
+// -------
+function getConnectedDisplaysId() {
+    var cmd = CFG.CMD.GET_DISPLAY_ID;
+    return new Promise(function (fulfill, reject) {
+        exec(cmd, EXEC_OPTS, function (error, stdout, stderr) {
+            if (error || stderr) {
+                console.error(error, stderr);
+                reject(error || stderr);
+            }
+            else {
+                var connectedDisplaysId = _parseConnectedDisplaysId(stdout);
+                fulfill(connectedDisplaysId);
+            }
+        });
+    }).catch(_catchGenericErr);
+}
+function _parseConnectedDisplaysId(stdout) {
+    var idString = '';
+    var RESOLUTION_REG_EX = /[0-9]{3,5}x[0-9]{3,5}/;
+    var lines = stdout.split('\n');
+    lines.forEach(function (line) {
+        if (line !== '') {
+            var resolution = RESOLUTION_REG_EX.exec(line);
+            // only do this if we have a resolution as that means that the display is active
+            if (resolution) {
+                idString += resolution + ';';
+            }
+        }
+    });
+    if (idString.length) {
+        // cut off last semicolon
+        return idString.substring(0, idString.length - 1);
+    }
+}
+// Other
+// --------
+function getAdditionalMetaDataForWin(win) {
+    return __awaiter(this, void 0, Promise, function () {
+        var stdout, lines, winCopy;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, getWindowInfo(win.windowId)];
+                case 1:
+                    stdout = _a.sent();
+                    lines = stdout.split('\n');
+                    winCopy = __assign({}, win);
+                    lines.forEach(function (line) {
+                        var words = line.split(' ');
+                        var propertyName = words[0];
+                        // remove property name and "="
+                        words.splice(0, 2);
+                        var value = words.join(' ');
+                        var propertyNameFromMap = CFG.WM_META_MAP[propertyName];
+                        // parse wmClassName
+                        if (propertyName === 'WM_CLASS(STRING)') {
+                            var propertyNameFromMap_1 = CFG.WM_META_MAP[propertyName];
+                            var classNames = value.split(', ');
+                            var className_1 = '';
+                            classNames.forEach(function (state) {
+                                if (state !== '') {
+                                    className_1 += state.replace(/"/g, '') + '.';
+                                }
+                            });
+                            winCopy[propertyNameFromMap_1] = className_1.substr(0, className_1.length - 2);
+                        }
+                        // parse states
+                        else if (propertyName === '_NET_WM_STATE(ATOM)') {
+                            var states = value.split(', ');
+                            winCopy.states = [];
+                            states.forEach(function (state) {
+                                if (state !== '') {
+                                    winCopy.states.push(state);
+                                }
+                            });
+                        }
+                        // parse simple strings and integers
+                        else if (propertyNameFromMap) {
+                            // special handle number types
+                            if (CFG.WM_META_MAP_NUMBER_TYPES.indexOf(propertyName) > -1) {
+                                winCopy[propertyNameFromMap] = parseInt(value, 10);
+                            }
+                            else {
+                                winCopy[propertyNameFromMap] = value;
+                            }
+                        }
+                    });
+                    // console.log(winCopy);
+                    return [2 /*return*/, winCopy];
+            }
+        });
+    });
+}
+// TODO prettify args structure
+function startProgram(executableFile, desktopFilePath) {
+    IS_DEBUG && console.log('DEBUG: startProgram():', executableFile, desktopFilePath);
+    var cmd;
+    var args = [];
+    if (desktopFilePath) {
+        cmd = "awk";
+        args.push('/^Exec=/ {sub("^Exec=", ""); gsub(" ?%[cDdFfikmNnUuv]", ""); exit system($0)}');
+        args.push(desktopFilePath);
+    }
+    else {
+        var parsedCmd = parseCmdArgs(executableFile);
+        cmd = parsedCmd[0];
+        args = parsedCmd[1];
+    }
+    return new Promise(function (fulfill) {
+        spawn(cmd, args, {
+            stdio: 'ignore',
+            detached: true,
+        }).unref();
+        // currently we have no error handling as the process is started detached
+        fulfill();
+    });
+}
+// GET ACTIVE WINDOW LIST
+// ----------------------
+function getActiveWindowList() {
+    return __awaiter(this, void 0, Promise, function () {
+        var windowIds, windowList, promises, windowsWithData;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, _getActiveWindowIds()];
+                case 1:
+                    windowIds = _a.sent();
+                    windowList = [];
+                    windowIds.forEach(function (windowId) {
+                        windowList.push({
+                            windowId: windowId,
+                            windowIdDec: parseInt(windowId, 16),
+                        });
+                    });
+                    promises = windowList.map(function (win) { return getAdditionalMetaDataForWin(win); });
+                    return [4 /*yield*/, Promise.all(promises)];
+                case 2:
+                    windowsWithData = _a.sent();
+                    IS_DEBUG && console.log('DEBUG: getActiveWindowList():', windowList);
+                    return [2 /*return*/, windowsWithData.filter(_filterInvalidWindows)];
+            }
+        });
+    });
+}
+function _filterInvalidWindows(win) {
+    // filter none normal windows, excluded class names and incomplete windows
+    var isNormalWindow = (!win.wmType || win.wmType === '_NET_WM_WINDOW_TYPE_NORMAL');
+    var isNotExcluded = !(_isExcludedWmClassName(win.wmClassName));
+    var hasWmClassName = !!(win.wmClassName);
+    // warn if no wmClassName even though there should be
+    if (isNormalWindow && isNotExcluded && !hasWmClassName) {
+        console.warn(win.windowId + ' has no wmClassName. Win: ', win);
+    }
+    return (isNormalWindow && isNotExcluded && hasWmClassName);
+}
+function _getActiveWindowIds() {
+    var cmd = 'xprop -root|grep ^_NET_CLIENT_LIST\\(WINDOW\\)';
+    return new Promise(function (fulfill, reject) {
+        exec(cmd, EXEC_OPTS, function (error, stdout, stderr) {
+            if (error || stderr) {
+                console.error('xprop', error, stderr);
+                reject(error || stderr);
+            }
+            else {
+                var windowIds = _parseWindowIds(stdout);
+                fulfill(windowIds);
+            }
+        });
+    }).catch(_catchGenericErr);
+}
+function _parseWindowIds(stdout) {
+    var str = stdout.replace('_NET_CLIENT_LIST(WINDOW): window id #', '');
+    return str.split(', ');
+}
+function _isExcludedWmClassName(wmClassName) {
+    return CFG.WM_CLASS_EXCLUSIONS.indexOf(wmClassName) > -1;
+}
+function _catchGenericErr(err) {
+    console.error('otherCmd: Generic Error', err, err.stack);
+    log('otherCmd:', arguments);
+}
+//# sourceMappingURL=otherCmd.js.map
 
 var findup = require('findup-sync');
 var HOME_DIR = process.env['HOME'];
@@ -1259,5 +1410,6 @@ function _restoreWindowPositions(savedWindowList) {
         });
     });
 }
+//# sourceMappingURL=index.js.map
 
 export default index;

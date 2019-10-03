@@ -54,7 +54,6 @@ export const DEFAULT_CFG = {
         "/snap/bin"
     ],
     "CMD": {
-        "GET_DISPLAY_ID": "xrandr --query | grep '[^s]connected '",
-        "XPROP_ID": "xprop -id"
+        "GET_DISPLAY_ID": "xrandr --query | grep '[^s]connected '"
     }
 };
