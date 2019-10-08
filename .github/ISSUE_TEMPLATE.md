@@ -7,9 +7,10 @@ https://github.com/johannesjo/linux-window-session-manager#troubleshooting--issu
 ## Your Environment
 <!--- Include as many relevant details about the environment you experienced the bug in -->
 * Version used: 
-* Operating System and version:
+* Operating System and version: 
 * Desktop Environment: 
-* Node version:
+* Node version: 
+* List of Applications that are open (lwsm save) or should be opened (lwsm restore): 
 
 ## Expected Behavior
 <!--- If you're describing a bug, tell us what should happen -->
