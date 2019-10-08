@@ -332,7 +332,7 @@ async function _decodeProperty(type, data): Promise<any> {
             for (let i = 0; i < data.length; i += 4) {
                 res.push(data.unpack('L', i)[0]);
             }
-            return 'window id# ' + res.map(function (n) {
+            return 'window id# ' + res.map((n) => {
                 return '0x' + n.toString(16);
             }).join(', ');
 
