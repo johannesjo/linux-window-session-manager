@@ -290,54 +290,60 @@ function _sendX11ClientMessage(wid, eventName, eventProperties = [], optionalEve
 }
 
 async function _decodeProperty(type, data): Promise<any> {
-    switch (type) {
-        case 'STRING': {
-            const result = [];
-            let s = '';
-            for (let i = 0; i < data.length; ++i) {
-                if (data[i] == 0) {
-                    result.push(s);
-                    s = '';
-                    continue;
+    try {
+        switch (type) {
+            case 'STRING': {
+                const result = [];
+                let s = '';
+                for (let i = 0; i < data.length; ++i) {
+                    if (data[i] == 0) {
+                        result.push(s);
+                        s = '';
+                        continue;
+                    }
+                    s += String.fromCharCode(data[i]);
                 }
-                s += String.fromCharCode(data[i]);
+                result.push(s);
+                return result.map(quotize).join(', ');
             }
-            result.push(s);
-            return result.map(quotize).join(', ');
-        }
-        case 'ATOM':
-            if (data.length > 32) {
-                return 'LOOOOOOOOOOOOOOOOOOOOOOOOOOOOOONG';
-            }
+            case 'ATOM':
+                if (data.length > 32) {
+                    return 'LOOOOOOOOOOOOOOOOOOOOOOOOOOOOOONG';
+                }
 
-            const promises = [];
-            for (let i = 0; i < data.length; i += 4) {
-                const a = data.unpack('L', i)[0];
-                promises.push(_xCbToPromise(X.GetAtomName, a));
-            }
-            return await Promise.all(promises).then(res => {
+                const promises = [];
+                for (let i = 0; i < data.length; i += 4) {
+                    const a = data.unpack('L', i)[0];
+                    promises.push(_xCbToPromise(X.GetAtomName, a));
+                }
+                return await Promise.all(promises).then(res => {
+                    return res.join(', ');
+                });
+
+            case 'CARDINAL':
+            case 'INTEGER': {
+                const res = [];
+                for (let i = 0; i < data.length; i += 4) {
+                    res.push(data.unpack('L', i)[0]);
+                }
                 return res.join(', ');
-            });
-
-        case 'CARDINAL':
-        case 'INTEGER': {
-            const res = [];
-            for (let i = 0; i < data.length; i += 4) {
-                res.push(data.unpack('L', i)[0]);
             }
-            return res.join(', ');
+            case 'WINDOW':
+                const res = [];
+                for (let i = 0; i < data.length; i += 4) {
+                    res.push(data.unpack('L', i)[0]);
+                }
+                return 'window id# ' + res.map((n) => {
+                    return '0x' + n.toString(16);
+                }).join(', ');
+
+            default:
+                return 'WTF ' + type;
         }
-        case 'WINDOW':
-            const res = [];
-            for (let i = 0; i < data.length; i += 4) {
-                res.push(data.unpack('L', i)[0]);
-            }
-            return 'window id# ' + res.map((n) => {
-                return '0x' + n.toString(16);
-            }).join(', ');
-
-        default:
-            return 'WTF ' + type;
+    } catch (e) {
+        console.log(type, data);
+        console.error(e);
+        throw new Error(e);
     }
 }
 
