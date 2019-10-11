@@ -81,7 +81,9 @@ export function getWindowGeometry(winId) {
 }
 
 export async function getActiveWindowIds(): Promise<string[]> {
-    const idStr = await getProp(root, 498);
+    const PROP_NAME = '_NET_CLIENT_LIST';
+    const propId = await _getPropertyIdByName(root, PROP_NAME);
+    const idStr = await getProp(root, propId as number);
     return _parseWindowIds(idStr);
 }
 
@@ -234,6 +236,21 @@ function _getAtoms(list, cb) {
         }
     };
     getAtom();
+}
+
+async function _getPropertyIdByName(wid: string, nameToGet: string): Promise<number> {
+    const props: any[] = await _xCbToPromise(X.ListProperties, wid);
+    const promises = props.map(async function (p) {
+        const propName = await _xCbToPromise(X.GetAtomName, p);
+        if (nameToGet === propName) {
+            return p;
+        } else {
+            return false;
+        }
+    });
+
+    const res = await Promise.all(promises);
+    return res.find(item => item > 0);
 }
 
 
