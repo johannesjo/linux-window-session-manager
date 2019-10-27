@@ -91,8 +91,15 @@ if (action === 'save') {
 } else if (action === 'rename' && sessionName && (process.argv[4] && !process.argv[4].match(/^--/))) {
   base.renameSession(sessionName, process.argv[4]);
 } else {
+  let version = '';
+  try {
+    const p = require('./package.json');
+    version = p.version;
+  } catch (e) {
+  }
   console.log(`
-  Usage:\n
+  Linux Window Session Manager ${version}
+
   Saving your current windows:
   lwsm save [OPTIONAL_SESSION_ID]
   
