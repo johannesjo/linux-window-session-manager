@@ -1,4 +1,4 @@
-import {mkdirSync} from './utility';
+import {mergeDeep, mkdirSync} from './utility';
 import {DEFAULT_CFG} from './defaultConfig';
 import * as fs from 'fs';
 import {log} from './log';
@@ -13,7 +13,8 @@ export const SESSION_DATA_DIR = CFG_DATA_DIR + '/sessionData';
 // ------------
 try {
     // if config is already in place
-    cfg = JSON.parse(fs.readFileSync(CFG_FILE_PATH, 'utf8'));
+    const fromFile = JSON.parse(fs.readFileSync(CFG_FILE_PATH, 'utf8'));
+    cfg = mergeDeep(DEFAULT_CFG, fromFile);
 } catch (e) {
     log('lwsm: no config file present or it contains invalid json. Creating new one...');
 
