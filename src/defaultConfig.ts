@@ -53,6 +53,7 @@ export const DEFAULT_CFG = {
         "{home}/.config/autostart/",
         "/var/lib/snapd/desktop/applications",
         "/var/lib/flatpak/app",
+        "/var/lib/flatpak/exports/share/applications",
         "/snap/bin"
     ]
 };
