@@ -7,6 +7,7 @@ export interface WinObj extends WinObjIdOnly {
     states: string[];
     wmCurrentDesktopNr: number;
     wmType: string;
+    wmRole: string;
     wmPid: number;
     wmClassName: string;
     x: number;

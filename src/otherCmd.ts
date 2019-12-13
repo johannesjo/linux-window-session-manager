@@ -124,7 +124,8 @@ export async function getActiveWindowList(): Promise<WinObj[]> {
 
 function _filterInvalidWindows(win: WinObj): boolean {
     // filter none normal windows, excluded class names and incomplete windows
-    const isNormalWindow = (!win.wmType || win.wmType === '_NET_WM_WINDOW_TYPE_NORMAL');
+    const isNormalWindow = (!win.wmType || win.wmType === '_NET_WM_WINDOW_TYPE_NORMAL')
+      && (!win.wmRole || win.wmRole !== 'pop-up');
 
     const isNotExcluded = !(_isExcludedWmClassName(win.wmClassName));
     const hasWmClassName = !!(win.wmClassName);
