@@ -1,6 +1,6 @@
 {
   "name": "linux-window-session-manager",
-  "version": "3.0.7",
+  "version": "3.0.8",
   "description": "Window session manager for linux",
   "main": "dist/index.js",
   "module": "dist/index.es.js",
