@@ -32,6 +32,7 @@ export const DEFAULT_CFG = {
         'gnome-software.Gnome-software'
     ],
     "WM_META_MAP": {
+        "WM_WINDOW_ROLE(STRING)": "wmRole",
         "WM_CLASS(STRING)": "wmClassName",
         "_NET_WM_STATE(ATOM)": "states",
         "_NET_WM_DESKTOP(CARDINAL)": "wmCurrentDesktopNr",
