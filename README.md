@@ -11,7 +11,7 @@ Supports Unity and Gnome Desktops and possibly all other compositing window mana
 There's also a [companion tool in form of an indicator applet](https://github.com/johannesjo/linux-window-session-manger-indicator), a [gnome-shell-extension](https://github.com/johannesjo/gnome-shell-extension-window-session-manager) and a [Ulauncher extension](https://github.com/kpost/ulauncher-lwsm) if you like such things but this package can also be used standalone.
  
 ## Installation
-NodeJs needs to be installed.
+NodeJs needs to be installed *properly* before you can use lwsm. [Have a look at google](https://www.google.com/search?q=install+node+as+user+ubuntu&oq=install+node+as+user+ubuntu&aqs=chrome..69i57.9161j0j7&sourceid=chrome&ie=UTF-8) if you need help with that. 
 
 ```
 npm install -g linux-window-session-manager
