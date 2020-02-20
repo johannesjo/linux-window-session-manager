@@ -6,7 +6,6 @@ import {WinObj} from './model';
 
 const findup = require('findup-sync');
 
-
 const HOME_DIR = process.env['HOME'];
 const DEFAULT_DESKTOP_FILE_LOCATIONS = [
     '{home}/.local/share/applications',
@@ -29,7 +28,6 @@ export function goToFirstWorkspace() {
 export function findDesktopFile(fileName) {
     return new Promise((fulfill, reject) => {
         const desktopFileLocations = CFG.DESKTOP_FILE_LOCATIONS || DEFAULT_DESKTOP_FILE_LOCATIONS;
-        const patterns = [];
 
         const parentDirs = desktopFileLocations.map((parentDir) => {
             return parentDir.replace('{home}', HOME_DIR);
@@ -39,12 +37,17 @@ export function findDesktopFile(fileName) {
         let firstFile;
         const match = parentDirs.find((dir) => {
             firstFile = findup(fileName, {cwd: dir});
+
+            if (!firstFile) {
+                // snap desktop files now look like this => firefox_firefox.desktop
+                firstFile = findup(`${fileName.replace('.desktop','_')}${fileName}`, {cwd: dir});
+            }
             return firstFile;
         });
 
         if (!firstFile || !match) {
-            const err = 'findDesktopFile cant find file; searched patterns';
-            console.error(err, patterns);
+            const err = 'findDesktopFile cant find file; searched desktopFileLocations:';
+            console.error(err, desktopFileLocations);
             reject(err);
         } else {
             fulfill(firstFile);
