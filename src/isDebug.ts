@@ -1,1 +1,1 @@
-export const IS_DEBUG = process.argv.indexOf('--debug') > -1;
+export const IS_DEBUG = process.argv.indexOf("--debug") > -1;
