@@ -48,7 +48,7 @@ export function findDesktopFile(fileName) {
 
     if (!firstFile || !match) {
       const err =
-        "findDesktopFile cant find file; searched desktopFileLocations:";
+        `ERR: findDesktopFile() cant find file "${fileName}"! Searched desktopFileLocations:`;
       console.error(err, desktopFileLocations);
       reject(err);
     } else {
