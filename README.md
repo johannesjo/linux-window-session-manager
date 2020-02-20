@@ -21,7 +21,7 @@ For older distros, you also might need to install the `locate` command via `sudo
  
 ## Updating
 ```
-npm update -g linux-window-session-manager
+npm uninstall -g linux-window-session-manager && npm i -g linux-window-session-manager
 # (optional) delete config to update it to the newest version
 rm ~/.lwsm/config.json
 ```
