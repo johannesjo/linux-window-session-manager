@@ -48,11 +48,11 @@ export const DEFAULT_CFG = {
   ],
   DESKTOP_FILE_LOCATIONS: [
     "{home}/.local/share/applications",
-    "{home}/.gnome/apps/",
+    "{home}/.gnome/apps",
     "/usr/share/applications",
     "/usr/local/share/applications",
     "/usr/share/app-install",
-    "{home}/.config/autostart/",
+    "{home}/.config/autostart",
     "/var/lib/snapd/desktop/applications",
     "/var/lib/flatpak/app",
     "/var/lib/flatpak/exports/share/applications",
