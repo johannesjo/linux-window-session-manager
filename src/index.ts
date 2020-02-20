@@ -1,21 +1,13 @@
 "use strict";
-import { CFG, SESSION_DATA_DIR } from "./config";
+import {CFG, SESSION_DATA_DIR} from "./config";
 import * as fs from "fs";
-import { getConnectedDisplaysId, startProgram } from "./otherCmd";
-import {
-  closeWindow,
-  getX,
-  initX11,
-  moveToWorkspace,
-  restoreWindowPosition
-} from "./x11Wrapper";
-import {
-  findDesktopFile,
-  getActiveWindowListFlow,
-  goToFirstWorkspace
-} from "./metaWrapper";
-import { log } from "./log";
-import { WinObj } from "./model";
+import {getConnectedDisplaysId, startProgram} from "./otherCmd";
+import {closeWindow, getX, initX11, moveToWorkspace, restoreWindowPosition} from "./x11Wrapper";
+import {findDesktopFile, getActiveWindowListFlow, goToFirstWorkspace} from "./metaWrapper";
+import {log} from "./log";
+import {WinObj} from "./model";
+import {exec} from "child_process";
+
 // import * as Store from 'jfs';
 const Store = require("jfs");
 
@@ -40,7 +32,7 @@ export default {
   getConnectedDisplaysId,
   resetCfg: () => {
     const configFilePath = CFG.DATA_DIR + "/config.json";
-    if (fs.existsSync(configFilePath)) {
+    if(fs.existsSync(configFilePath)) {
       fs.unlinkSync(configFilePath);
     } else {
       console.error("No Config present in " + configFilePath);
@@ -76,8 +68,8 @@ function listSessions() {
 
 function renameSession(oldName: string, newName: string) {
   let obj = db.getSync(oldName);
-  if (obj.message) {
-    if (obj.message === "could not load data") {
+  if(obj.message) {
+    if(obj.message === "could not load data") {
       log(`Error: Could not find a session named '${oldName}'`);
     } else {
       log(obj.message);
@@ -124,20 +116,20 @@ function saveSessionForDisplayToDb(
   return new Promise((fulfill, reject) => {
     // check if entry exists and update
     db.get(sessionToHandle, (err, sessionData) => {
-      if (err) {
+      if(err) {
         // NOTE: we're not failing because, the case is probably that there is no session file yet
         log(
           `saveSessionForDisplayToDb: no session file present yet for "${sessionToHandle}", creating a new one...`
         );
       }
 
-      if (!sessionData) {
+      if(!sessionData) {
         // create new object
         sessionData = {
           name: sessionToHandle
         };
       }
-      if (
+      if(
         !sessionData.displaysCombinations ||
         !Array.isArray(sessionData.displaysCombinations)
       ) {
@@ -148,7 +140,7 @@ function saveSessionForDisplayToDb(
       const existingDisplayEntry = sessionData.displaysCombinations.find(
         entry => entry.id === connectedDisplaysId
       );
-      if (existingDisplayEntry) {
+      if(existingDisplayEntry) {
         existingDisplayEntry.windowList = windowList;
       } else {
         sessionData.displaysCombinations.push({
@@ -158,7 +150,7 @@ function saveSessionForDisplayToDb(
       }
 
       db.save(sessionToHandle, sessionData, err => {
-        if (err) {
+        if(err) {
           reject(err);
         } else {
           log("SAVED SESSION: " + sessionToHandle);
@@ -177,7 +169,7 @@ function restoreSession(
 
   return new Promise((fulfill, reject) => {
     db.get(sessionToHandle || "DEFAULT", (err, sessionData) => {
-      if (err) {
+      if(err) {
         reject(err);
         return;
       }
@@ -191,7 +183,7 @@ function restoreSession(
         .then(goToFirstWorkspace)
         .then(getConnectedDisplaysId)
         .then(connectedDisplaysId => {
-          if (!sessionData.displaysCombinations) {
+          if(!sessionData.displaysCombinations) {
             console.error(`no display combinations saved yet`);
             return;
           }
@@ -200,7 +192,7 @@ function restoreSession(
             entry => entry.id === connectedDisplaysId
           );
 
-          if (displayEntry) {
+          if(displayEntry) {
             savedWindowList = displayEntry.windowList;
           } else {
             console.error(
@@ -236,7 +228,7 @@ function restoreSession(
 function removeSession(sessionName: string): Promise<unknown> {
   return new Promise((fulfill, reject) => {
     fs.unlink(CFG.SESSION_DATA_DIR + "/" + sessionName + ".json", error => {
-      if (error) {
+      if(error) {
         console.error(error);
         reject(error);
       } else {
@@ -248,7 +240,7 @@ function removeSession(sessionName: string): Promise<unknown> {
 
 function _closeAllWindowsIfSet(isCloseAll: boolean): Promise<unknown> {
   return new Promise((fulfill, reject) => {
-    if (isCloseAll) {
+    if(isCloseAll) {
       log("Closing opened applications");
       getActiveWindowListFlow()
         .then((currentWindowList: any[]) => {
@@ -275,8 +267,8 @@ function _waitForAllAppsToClose(): Promise<unknown> {
         getActiveWindowListFlow()
           .then((currentWindowList: WinObj[]) => {
             totalTimeWaited += CFG.POLL_ALL_APPS_STARTED_INTERVAL;
-            if (currentWindowList.length !== 0) {
-              if (totalTimeWaited > CFG.POLL_ALL_MAX_TIMEOUT) {
+            if(currentWindowList.length !== 0) {
+              if(totalTimeWaited > CFG.POLL_ALL_MAX_TIMEOUT) {
                 console.error("POLL_ALL_MAX_TIMEOUT reached");
                 reject("POLL_ALL_MAX_TIMEOUT reached");
               } else {
@@ -309,15 +301,15 @@ function _waitForAllAppsToStart(savedWindowList): Promise<WinObj[] | unknown> {
     ) {
       timeout = setTimeout(() => {
         // clear timeout to be save
-        if (timeout) {
+        if(timeout) {
           clearTimeout(timeout);
         }
 
         getActiveWindowListFlow()
           .then(currentWindowList => {
             totalTimeWaited += CFG.POLL_ALL_APPS_STARTED_INTERVAL;
-            if (!_isAllAppsStarted(savedWindowList, currentWindowList)) {
-              if (totalTimeWaited > CFG.POLL_ALL_MAX_TIMEOUT) {
+            if(!_isAllAppsStarted(savedWindowList, currentWindowList)) {
+              if(totalTimeWaited > CFG.POLL_ALL_MAX_TIMEOUT) {
                 console.error("POLL_ALL_MAX_TIMEOUT reached");
                 console.error(
                   "Unable to start the following apps",
@@ -348,7 +340,7 @@ function _getNotStartedApps(
 ): WinObj[] {
   let nonStartedApps = [];
   savedWindowList.forEach(win => {
-    if (!_getMatchingWindowId(win, currentWindowList)) {
+    if(!_getMatchingWindowId(win, currentWindowList)) {
       nonStartedApps.push(win);
     }
   });
@@ -362,7 +354,7 @@ function _isAllAppsStarted(
   let isAllStarted = true;
   const currentWindowListCopy = currentWindowList.slice(0);
   savedWindowList.forEach(win => {
-    if (!_getMatchingWindowId(win, currentWindowListCopy)) {
+    if(!_getMatchingWindowId(win, currentWindowListCopy)) {
       isAllStarted = false;
     } else {
       const index = currentWindowListCopy.findIndex(
@@ -393,20 +385,35 @@ async function _guessAndSetDesktopFilePaths(
 function _guessFilePath(win: WinObj, inputHandler): Promise<string | unknown> {
   return new Promise((fulfill, reject) => {
     function callInputHandler(error?, stdout?) {
-      inputHandler(error, win, stdout)
-        .then(input => {
-          if (_isDesktopFile(win.executableFile)) {
-            win.desktopFilePath = input;
-            fulfill(win.desktopFilePath);
+      if(error) {
+        console.log(`\n Trying alternative guessing approach for "${win.simpleName}".....`);
+        exec(`cat /proc/${win.wmPid}/cmdline`, (error1, stdout1) => {
+          if(error1 || !stdout1.length) {
+            console.error('ERR _guessFilePath()', error1);
+            reject(error1);
           } else {
-            win.executableFile = input;
+            const ent = stdout1.split('\u0000');
+            console.log(`\n Alternative guessing approach for "${win.simpleName}" SUCCESS -> ${ent[0]}`);
+            win.executableFile = ent[0];
             fulfill(win.executableFile);
           }
-        })
-        .catch(reject);
+        });
+      } else {
+        inputHandler(error, win, stdout)
+          .then(input => {
+            if(_isDesktopFile(win.executableFile)) {
+              win.desktopFilePath = input;
+              fulfill(win.desktopFilePath);
+            } else {
+              win.executableFile = input;
+              fulfill(win.executableFile);
+            }
+          })
+          .catch(reject);
+      }
     }
 
-    if (_isDesktopFile(win.executableFile)) {
+    if(_isDesktopFile(win.executableFile)) {
       findDesktopFile(win.executableFile)
         .then(stdout => {
           callInputHandler(null, stdout);
@@ -461,17 +468,17 @@ function _isProgramAlreadyRunning(
   numberOfInstancesToRun: number,
   instancesStarted: number
 ): boolean {
-  if (!numberOfInstancesToRun) {
+  if(!numberOfInstancesToRun) {
     numberOfInstancesToRun = 1;
   }
 
-  if (!instancesStarted) {
+  if(!instancesStarted) {
     instancesStarted = 0;
   }
 
   let instancesRunning = 0;
   currentWindowList.forEach(win => {
-    if (win.wmClassName === wmClassName) {
+    if(win.wmClassName === wmClassName) {
       instancesRunning++;
     }
   });
@@ -494,7 +501,7 @@ function _updateWindowIds(
 ) {
   const wmClassNameMap = {};
   savedWindowList.forEach(win => {
-    if (!wmClassNameMap[win.wmClassName]) {
+    if(!wmClassNameMap[win.wmClassName]) {
       wmClassNameMap[win.wmClassName] = _getMatchingWindows(
         win,
         currentWindowList
