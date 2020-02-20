@@ -18,19 +18,23 @@
     "build": "rollup --config",
     "watch": "rollup --config --watch",
     "testSnap": "snapcraft clean cmd -s pull && snapcraft prime && snap try prime/ --devmode && /snap/bin/lwsm save test && /snap/bin/lwsm restore test",
-    "version": "yarn build"
+    "version": "yarn build",
+    "pretty": "prettier --check \"src/**/*.ts\" --write"
   },
   "author": "Johannes Millan <contact@super-productivity.com> (http://super-productivity.com)",
   "license": "MIT",
   "dependencies": {
-    "x11": "^2.3.0",
     "findup-sync": "^4.0.0",
     "jfs": "^0.2.6",
-    "omelette": "^0.4.5"
+    "omelette": "^0.4.5",
+    "x11": "^2.3.0"
   },
   "devDependencies": {
     "@types/node": "^12.7.8",
     "D": "^1.0.0",
+    "husky": ">=4",
+    "lint-staged": "^10.0.7",
+    "prettier": "^1.19.1",
     "rollup": "^1.21.4",
     "rollup-plugin-node-builtins": "^2.1.2",
     "rollup-plugin-node-globals": "^1.4.0",
@@ -48,5 +52,15 @@
       "version": "6.9.2",
       "ignoreFlags": true
     }
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.ts": [
+      "prettier --write"
+    ]
   }
 }
