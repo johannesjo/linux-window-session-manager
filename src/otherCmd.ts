@@ -1,12 +1,12 @@
 "use strict";
 
-import { IS_DEBUG } from "./isDebug";
-import { CFG } from "./config";
-import { spawn } from "child_process";
-import { parseCmdArgs } from "./parseCmdToSpawn";
-import { WinObj, WinObjIdOnly } from "./model";
-import { log } from "./log";
-import { getActiveWindowIds, getDisplays, getWindowInfo } from "./x11Wrapper";
+import {IS_DEBUG} from "./isDebug";
+import {CFG} from "./config";
+import {spawn} from "child_process";
+import {parseCmdArgs} from "./parseCmdToSpawn";
+import {WinObj, WinObjIdOnly} from "./model";
+import {log} from "./log";
+import {getActiveWindowIds, getDisplays, getWindowInfo} from "./x11Wrapper";
 
 // 500kb
 const MAX_BUFFER = 1024 * 500;
@@ -30,7 +30,7 @@ export async function getAdditionalMetaDataForWin(
 ): Promise<WinObj> {
   const stdout = await getWindowInfo(win.windowId);
   const lines = stdout.split("\n");
-  const winCopy: any = { ...win };
+  const winCopy: any = {...win};
 
   lines.forEach(line => {
     const words = line.split(" ");
@@ -41,31 +41,31 @@ export async function getAdditionalMetaDataForWin(
     const value = words.join(" ");
     const propertyNameFromMap = CFG.WM_META_MAP[propertyName];
     // parse wmClassName
-    if (propertyName === "WM_CLASS(STRING)") {
+    if(propertyName === "WM_CLASS(STRING)") {
       const propertyNameFromMap = CFG.WM_META_MAP[propertyName];
       const classNames = value.split(", ");
       let className = "";
       classNames.forEach(state => {
-        if (state !== "") {
+        if(state !== "") {
           className += state.replace(/"/g, "") + ".";
         }
       });
       winCopy[propertyNameFromMap] = className.substr(0, className.length - 2);
     }
     // parse states
-    else if (propertyName === "_NET_WM_STATE(ATOM)") {
+    else if(propertyName === "_NET_WM_STATE(ATOM)") {
       const states = value.split(", ");
       winCopy.states = [];
       states.forEach(state => {
-        if (state !== "") {
+        if(state !== "") {
           winCopy.states.push(state);
         }
       });
     }
     // parse simple strings and integers
-    else if (propertyNameFromMap) {
+    else if(propertyNameFromMap) {
       // special handle number types
-      if (CFG.WM_META_MAP_NUMBER_TYPES.indexOf(propertyName) > -1) {
+      if(CFG.WM_META_MAP_NUMBER_TYPES.indexOf(propertyName) > -1) {
         winCopy[propertyNameFromMap] = parseInt(value, 10);
       } else {
         winCopy[propertyNameFromMap] = value;
@@ -82,11 +82,11 @@ export function startProgram(
   desktopFilePath: string
 ): Promise<void> {
   IS_DEBUG &&
-    console.log("DEBUG: startProgram():", executableFile, desktopFilePath);
+  console.log("DEBUG: startProgram():", executableFile, desktopFilePath);
 
   let cmd;
   let args = [];
-  if (desktopFilePath) {
+  if(desktopFilePath) {
     cmd = `awk`;
     args.push(
       '/^Exec=/ {sub("^Exec=", ""); gsub(" ?%[cDdFfikmNnUuv]", ""); exit system($0)}'
@@ -132,15 +132,16 @@ export async function getActiveWindowList(): Promise<WinObj[]> {
 
 function _filterInvalidWindows(win: WinObj): boolean {
   // filter none normal windows, excluded class names and incomplete windows
+  // NOTE: if there is no type we assume it's normal too
   const isNormalWindow =
-    (!win.wmType || win.wmType === "_NET_WM_WINDOW_TYPE_NORMAL") &&
+    (!win.wmType || win.wmType.includes("_NET_WM_WINDOW_TYPE_NORMAL")) &&
     (!win.wmRole || win.wmRole !== "pop-up");
 
   const isNotExcluded = !_isExcludedWmClassName(win.wmClassName);
   const hasWmClassName = !!win.wmClassName;
 
   // warn if no wmClassName even though there should be
-  if (isNormalWindow && isNotExcluded && !hasWmClassName) {
+  if(isNormalWindow && isNotExcluded && !hasWmClassName) {
     console.warn(win.windowId + " has no wmClassName. Win: ", win);
   }
 
