@@ -59,4 +59,3 @@ export const DEFAULT_CFG = {
     "/snap/bin"
   ]
 };
-

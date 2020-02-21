@@ -47,8 +47,7 @@ export function findDesktopFile(fileName) {
     });
 
     if (!firstFile || !match) {
-      const err =
-        `ERR: findDesktopFile() cant find file "${fileName}"! Searched desktopFileLocations:`;
+      const err = `ERR: findDesktopFile() cant find file "${fileName}"! Searched desktopFileLocations:`;
       console.error(err, desktopFileLocations);
       reject(err);
     } else {
