@@ -553,16 +553,24 @@ async function _restoreWindowPositions(
   savedWindowList: WinObj[]
 ): Promise<void> {
   const promises = [];
-  savedWindowList.forEach(win => {
-    promises.push(restoreWindowPosition(win));
-    promises.push(moveToWorkspace(win.windowId, win.wmCurrentDesktopNr));
+  let last_desktop_nr = 0;
+  savedWindowList = savedWindowList.sort((a, b) => {
+    if (a.wmCurrentDesktopNr > b.wmCurrentDesktopNr) return 1;
+    if (a.wmCurrentDesktopNr < b.wmCurrentDesktopNr) return -1;
+    return 0;
   });
 
-  for (const promise of promises) {
-    try {
-      await promise;
-    } catch (e) {
-      _catchGenericErr(e);
+  for (const win of savedWindowList) {
+    promises.push(restoreWindowPosition(win));
+    promises.push(moveToWorkspace(win.windowId, win.wmCurrentDesktopNr));
+    if (win.wmCurrentDesktopNr != last_desktop_nr) {
+      for (const promise of promises) {
+        try {
+          await promise;
+        } catch (e) {
+          _catchGenericErr(e);
+        }
+      }
     }
   }
 }
