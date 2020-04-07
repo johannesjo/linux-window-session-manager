@@ -563,7 +563,7 @@ async function _restoreWindowPositions(
   for (const win of savedWindowList) {
     promises.push(restoreWindowPosition(win));
     promises.push(moveToWorkspace(win.windowId, win.wmCurrentDesktopNr));
-    if (win.wmCurrentDesktopNr != last_desktop_nr) {
+    if ( (win.wmCurrentDesktopNr != last_desktop_nr) || (win == savedWindowList.slice(-1)[0])) {
       for (const promise of promises) {
         try {
           await promise;
@@ -571,6 +571,8 @@ async function _restoreWindowPositions(
           _catchGenericErr(e);
         }
       }
+      last_desktop_nr = win.wmCurrentDesktopNr;
+      promises.length = 0
     }
   }
 }
