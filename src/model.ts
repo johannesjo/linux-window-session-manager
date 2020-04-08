@@ -16,6 +16,7 @@ export interface WinObj extends WinObjIdOnly {
   height: number;
   simpleName: string;
   executableFile: string;
+  executableArgs: string;
   desktopFilePath?: string;
   instancesStarted?: number;
 }

@@ -461,7 +461,7 @@ async function _startSessionPrograms(
     })
     .map(win => {
       win.instancesStarted += 1;
-      return startProgram(win.executableFile, win.desktopFilePath);
+      return startProgram(win.executableFile, win.desktopFilePath, win.executableArgs);
     });
 
   await Promise.all(promises);
