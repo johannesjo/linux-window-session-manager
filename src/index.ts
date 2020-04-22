@@ -210,17 +210,12 @@ function restoreSession(
             );
             return;
           }
-          return getActiveWindowListFlow();
+          return;
         })
-        .then(currentWindowList => {
-          return _startSessionPrograms(savedWindowList, currentWindowList);
+        .then( () => {
+          return _startAndWaitPrograms(savedWindowList);
         })
         .then(() => {
-          // gets current window list by itself and returns the updated variant
-          return _waitForAllAppsToStart(savedWindowList);
-        })
-        .then((updatedCurrentWindowList: WinObj[]) => {
-          _updateWindowIds(savedWindowList, updatedCurrentWindowList);
           return _restoreWindowPositions(savedWindowList);
         })
         .then(() => {
@@ -465,6 +460,117 @@ async function _startSessionPrograms(
     });
 
   await Promise.all(promises);
+}
+
+
+// This function is necessary to make possible sending custom arguments to applications to start,
+// making sure it will keep track of which windows correspond to which instance of the applications
+async function _startAndWaitPrograms(
+  windowList: WinObj[],
+){
+
+  // Clear the windowIds from the window objects
+  windowList.forEach(win=>{
+    win.windowId = null;
+    win.windowIdDec = null;
+  })
+
+  // Get the windowIds of all Ids that were previously opened in order to
+  // avoid these windows from being used isntead of the newly created windows
+  // (necessary for windows with custom input arguments)
+  var activeWindows = await getActiveWindowListFlow()
+  var blackWinIdList = activeWindows.map( win => win.windowId)
+
+  // Match all the previously opened windows with the windows that do not have
+  // custom arguments (in this case, no blacklist needed)
+  await _matchWindows(windowList, false, [])
+
+  var windowsNotStarted = windowList.filter(win => win.windowId === null);
+  var windowStarted =  windowList.filter(win => win.windowId !== null);
+  var windowsToStart = _getWindowsToStart(windowsNotStarted, windowStarted);
+
+  let totalTimeWaited = 0;
+  // Runs the loop until all windows have been opened or time limit is over
+  while (windowList.find(win => win.windowId === null)){
+    totalTimeWaited += CFG.POLL_ALL_APPS_STARTED_INTERVAL;
+    if (totalTimeWaited > CFG.POLL_ALL_MAX_TIMEOUT * 10) {
+      console.error("POLL_ALL_MAX_TIMEOUT reached");
+      windowList.filter(win => win.windowId === null).forEach(e =>{
+        console.log('Unable to start: ',e.wmClassName)
+      })
+      break
+    }
+
+    let promises = windowsToStart.map(
+      win => {
+        startProgram(win.executableFile, win.desktopFilePath, win.executableArgs)
+      }
+    );
+    await Promise.all(promises)
+
+    // Try to match newly started windows, the black list is needed to avoid matching
+    // windows that have custom arguments with windows oppened before running lwsm
+    await _matchWindows( windowList, true, blackWinIdList)
+    // Update the lists with the windows not to be started yet, the windows to be started next
+    // and the ones that already have the command to start sent
+    windowsNotStarted = windowsNotStarted.filter(winNotStarted => !(windowsToStart.find(winToStart => winToStart === winNotStarted)));
+    windowStarted = windowStarted.concat(windowsToStart);
+    windowsToStart = _getWindowsToStart(windowsNotStarted, windowStarted);
+  }
+
+  windowList.forEach(win => {win.windowIdDec = parseInt(win.windowId, 16)});
+}
+
+
+// Get, from windowList, all the windows that can be started without the risk of
+// mixing same application windows with different arguments. The others will have to wait for the
+// previous windows to start, before the command can be issued
+function _getWindowsToStart(
+  windowList: WinObj[],
+  windowsStarted: WinObj[]
+){
+  var windowsToStart = [];
+  for (var win of windowList){
+    let shouldAdd = true;
+    // If another instance of the same application with different input arguments
+    // is in the list of windows to start, then the current one should not be added
+    windowsToStart.forEach( winToRun =>{
+      if ((win.executableFile ===  winToRun.executableFile) &&
+          (win.executableArgs !==  winToRun.executableArgs)){
+            shouldAdd = false;
+          }
+      }
+    )
+    // If another instance of the same application is in the list of windows that 
+    // have been sent command to start, but still don't have a windowId, the current one should not be added
+    if (windowsStarted.find(winStarted => (winStarted.windowId === null && winStarted.wmClassName === win.wmClassName)) ){
+      shouldAdd = false;
+    }
+    if (!win.windowId && shouldAdd) {windowsToStart.push(win)};
+  }
+  return windowsToStart;
+}
+
+
+// Match the windows that have been opened already to the windows on windowList 
+async function _matchWindows(
+  windowList: WinObj[],
+  includeExecsWithArgs: boolean,
+  blackWinIdList: String[]
+){
+  var activeWindows = await getActiveWindowListFlow()
+  // Remove the active windows that already have a window assigned on windowList
+  // and the ones that are on the black list
+  activeWindows = activeWindows.filter(actWin => !windowList.find(win => win.windowId === actWin.windowId));
+  activeWindows = activeWindows.filter(actWin => !blackWinIdList.find(windowId => windowId === actWin.windowId));
+
+  for (var win of windowList.filter(win => win.windowId === null)){
+    let activeWindowMatch = activeWindows.find(actWin => actWin.wmClassName == win.wmClassName);
+    if (activeWindowMatch && (!win.executableArgs || win.executableArgs === '' || includeExecsWithArgs)){
+      win.windowId = activeWindowMatch.windowId;
+      activeWindows = activeWindows.filter(e => e !== activeWindowMatch);
+    }
+  }
 }
 
 function _getNumberOfInstancesToRun(
