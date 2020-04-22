@@ -98,6 +98,7 @@ export function startProgram(
     const parsedCmd = parseCmdArgs(executableFile);
     cmd = parsedCmd[0];
     args = parsedCmd[1];
+    args = args.concat([executableArgs]);
   }
 
   return new Promise(fulfill => {
