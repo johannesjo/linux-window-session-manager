@@ -1,17 +1,30 @@
-import { mergeDeep, mkdirSync } from "./utility";
+import { mergeDeep, mkdirSync, movedir } from "./utility";
 import { DEFAULT_CFG } from "./defaultConfig";
 import * as fs from "fs";
 import { log } from "./log";
 
 let cfg;
 
-export const CFG_DATA_DIR = _getUserHome() + "/.lwsm";
+export const CFG_DATA_DIR_LEGACY = _getUserHome() + "/.lwsm";
+export const CFG_DATA_DIR = _getUserHome() + "/.config/lwsm";
 export const CFG_FILE_PATH = CFG_DATA_DIR + "/config.json";
 export const SESSION_DATA_DIR = CFG_DATA_DIR + "/sessionData";
 
 // INIT
 // ------------
 try {
+  // if CFG_DATA_DIR_LEGACY exists, move it to CFG_DATA_DIR
+  if (fs.existsSync(CFG_DATA_DIR_LEGACY)) {
+    if (!fs.existsSync(CFG_DATA_DIR)) {
+      movedir(CFG_DATA_DIR_LEGACY, CFG_DATA_DIR);
+      log(
+        `lwsm: moved config directory ${CFG_DATA_DIR_LEGACY} to ${CFG_DATA_DIR}`
+      );
+    } else {
+      log(`lwsm: ignored legacy config directory ${CFG_DATA_DIR_LEGACY}`);
+    }
+  }
+
   // if config is already in place
   const fromFile = JSON.parse(fs.readFileSync(CFG_FILE_PATH, "utf8"));
   cfg = mergeDeep(DEFAULT_CFG, fromFile);

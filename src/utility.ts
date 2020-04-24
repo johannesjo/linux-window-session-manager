@@ -1,4 +1,5 @@
 import * as fs from "fs";
+import * as path from "path";
 
 export function mkdirSync(dirPath) {
   try {
@@ -47,4 +48,22 @@ export function mergeDeep(...objects) {
 
     return prev;
   }, {});
+}
+
+export function movedir(from, to) {
+  mkdirSync(to);
+  let contents = fs.readdirSync(from);
+
+  for (const element of contents) {
+    let from_element = path.join(from, element);
+    let to_element = path.join(to, element);
+
+    if (fs.lstatSync(from_element).isDirectory()) {
+      movedir(from_element, to_element);
+    } else {
+      fs.copyFileSync(from_element, to_element);
+      fs.unlinkSync(from_element);
+    }
+  }
+  fs.rmdirSync(from);
 }
