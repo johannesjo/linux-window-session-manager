@@ -173,7 +173,8 @@ function saveSessionForDisplayToDb(
 
 function restoreSession(
   sessionName: string,
-  isCloseAllOpenWindows: boolean
+  isCloseAllOpenWindows: boolean,
+  isAllowInputArgs: boolean
 ): Promise<any> {
   const sessionToHandle = sessionName || "DEFAULT";
 
@@ -210,10 +211,22 @@ function restoreSession(
             );
             return;
           }
-          return;
+          return getActiveWindowListFlow();
         })
-        .then( () => {
-          return _startAndWaitPrograms(savedWindowList);
+        .then(currentWindowList => {
+          if (isAllowInputArgs) {
+            return _startAndWaitPrograms(savedWindowList);
+          } else {
+            _startSessionPrograms(savedWindowList, currentWindowList)
+              .then(() => {
+                // gets current window list by itself and returns the updated variant
+                return _waitForAllAppsToStart(savedWindowList);
+              })
+              .then((updatedCurrentWindowList: WinObj[]) => {
+                _updateWindowIds(savedWindowList, updatedCurrentWindowList);
+                return;
+              });
+          }
         })
         .then(() => {
           return _restoreWindowPositions(savedWindowList);
