@@ -217,14 +217,16 @@ function restoreSession(
           if (isAllowInputArgs) {
             return _startAndWaitPrograms(savedWindowList);
           } else {
-            _startSessionPrograms(savedWindowList, currentWindowList)
+            return _startSessionPrograms(savedWindowList, currentWindowList)
               .then(() => {
                 // gets current window list by itself and returns the updated variant
                 return _waitForAllAppsToStart(savedWindowList);
               })
               .then((updatedCurrentWindowList: WinObj[]) => {
-                _updateWindowIds(savedWindowList, updatedCurrentWindowList);
-                return;
+                return _updateWindowIds(
+                  savedWindowList,
+                  updatedCurrentWindowList
+                );
               });
           }
         })
