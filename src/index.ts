@@ -506,8 +506,8 @@ async function _startAndWaitPrograms(windowList: WinObj[]) {
   // Runs the loop until all windows have been opened or time limit is over
   while (windowList.find(win => win.windowId === null)) {
     totalTimeWaited += CFG.POLL_ALL_APPS_STARTED_INTERVAL;
-    if (totalTimeWaited > CFG.POLL_ALL_MAX_TIMEOUT * 10) {
-      console.error("POLL_ALL_MAX_TIMEOUT reached");
+    if (totalTimeWaited > CFG.POLL_ALL_MAX_TIMEOUT_ALLOW_ARGS) {
+      console.error("POLL_ALL_MAX_TIMEOUT_ALLOW_ARGS reached");
       windowList
         .filter(win => win.windowId === null)
         .forEach(e => {
