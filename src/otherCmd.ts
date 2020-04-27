@@ -88,17 +88,27 @@ export function startProgram(
   let cmd;
   let args = [];
   if (desktopFilePath) {
-    executableArgs = (executableArgs) ? ` ${executableArgs}`: "";
     cmd = `awk`;
-    args.push(
-      `/^Exec=/ {sub("^Exec=", ""); gsub(" ?%[cDdFfikmNnUuv]", "${executableArgs}"); exit system($0)}`
-    );
+
+    if (executableArgs) {
+      args.push(
+        `/^Exec=/ {sub("^Exec=", ""); gsub(" ?%[cDdFfikmNnUuv]", " ${executableArgs}"); exit system($0)}`
+      );
+    } else {
+      args.push(
+        '/^Exec=/ {sub("^Exec=", ""); gsub(" ?%[cDdFfikmNnUuv]", ""); exit system($0)}'
+      );
+    }
+
     args.push(desktopFilePath);
   } else {
     const parsedCmd = parseCmdArgs(executableFile);
     cmd = parsedCmd[0];
     args = parsedCmd[1];
-    args = args.concat(executableArgs.split(' '));
+
+    if (executableArgs) {
+      args = args.concat([executableArgs]);
+    }
   }
 
   return new Promise(fulfill => {

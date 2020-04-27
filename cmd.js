@@ -65,6 +65,7 @@ const savePrompts = {
 };
 
 const isCloseAllWinBefore = process.argv.indexOf('--closeAllOpenWindows') > -1;
+const isAllowInputArgs = process.argv.indexOf('--allowInputArgs') > -1;
 const action = process.argv[2];
 let sessionName;
 if (process.argv[3] && !process.argv[3].match(/^--/)) {
@@ -81,7 +82,7 @@ function killX11() {
 if (action === 'save') {
   base.saveSession(sessionName, savePrompts).then(killX11);
 } else if (action === 'restore') {
-  base.restoreSession(sessionName, isCloseAllWinBefore).then(killX11);
+  base.restoreSession(sessionName, isCloseAllWinBefore, isAllowInputArgs).then(killX11);
 } else if (action === 'remove') {
   base.removeSession(sessionName).then(killX11);
 } else if (action === 'resetCfg') {
