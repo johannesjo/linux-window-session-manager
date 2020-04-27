@@ -88,7 +88,7 @@ export function startProgram(
   let cmd;
   let args = [];
   if (desktopFilePath) {
-    executableArgs = (executableArgs) ? ` ${executableArgs}`: "";
+    executableArgs = executableArgs ? ` ${executableArgs}` : "";
     cmd = `awk`;
     args.push(
       `/^Exec=/ {sub("^Exec=", ""); gsub(" ?%[cDdFfikmNnUuv]", "${executableArgs}"); exit system($0)}`
@@ -98,7 +98,9 @@ export function startProgram(
     const parsedCmd = parseCmdArgs(executableFile);
     cmd = parsedCmd[0];
     args = parsedCmd[1];
-    args = args.concat([executableArgs]);
+    if (executableArgs) {
+      args = args.concat([executableArgs]);
+    }
   }
 
   return new Promise(fulfill => {
