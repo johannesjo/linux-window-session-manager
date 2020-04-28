@@ -106,7 +106,8 @@ export function startProgram(
     cmd = parsedCmd[0];
     args = parsedCmd[1];
     if (executableArgs) {
-      args = args.concat([executableArgs]);
+      var executableArgsArray = executableArgs.split(" ");
+      args = args.concat(executableArgsArray);
     }
   }
 
