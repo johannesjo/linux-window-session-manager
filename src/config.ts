@@ -14,16 +14,16 @@ export const SESSION_DATA_DIR = CFG_DATA_DIR + "/sessionData";
 // ------------
 try {
   // if CFG_DATA_DIR_LEGACY exists, move it to CFG_DATA_DIR
-  // if (fs.existsSync(CFG_DATA_DIR_LEGACY)) {
-  //   if (!fs.existsSync(CFG_DATA_DIR)) {
-  //     movedir(CFG_DATA_DIR_LEGACY, CFG_DATA_DIR);
-  //     log(
-  //       `lwsm: moved config directory ${CFG_DATA_DIR_LEGACY} to ${CFG_DATA_DIR}`
-  //     );
-  //   } else {
-  //     log(`lwsm: ignored legacy config directory ${CFG_DATA_DIR_LEGACY}`);
-  //   }
-  // }
+  if (fs.existsSync(CFG_DATA_DIR_LEGACY)) {
+    if (!fs.existsSync(CFG_DATA_DIR)) {
+      movedir(CFG_DATA_DIR_LEGACY, CFG_DATA_DIR);
+      log(
+        `lwsm: moved config directory ${CFG_DATA_DIR_LEGACY} to ${CFG_DATA_DIR}`
+      );
+    } else {
+      log(`lwsm: ignored legacy config directory ${CFG_DATA_DIR_LEGACY}`);
+    }
+  }
 
   // if config is already in place
   const fromFile = JSON.parse(fs.readFileSync(CFG_FILE_PATH, "utf8"));
