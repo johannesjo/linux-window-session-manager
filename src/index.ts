@@ -705,7 +705,7 @@ async function _restoreWindowPositions(
   for (const win of savedWindowList) {
     promises.push(restoreWindowPosition(win));
     promises.push(moveToWorkspace(win.windowId, win.wmCurrentDesktopNr));
-    // The promises are not executed until the last item is reached or
+    // The promises are not executed until the last item is reached or 
     // the desktop_nr is different from the previous entry and which case
     // the app waits for those to finish before continuing the process
     if (
