@@ -554,10 +554,10 @@ async function _restoreWindowPositions(
 ): Promise<void> {
   const promises = [];
   let last_desktop_nr = 0;
-  
+
   // Sort the window objects based on which workspace they are locate,
   // so the windows can be moved workspace by workspace
-  // This is needed because the window manager just creates an aditional workspace when 
+  // This is needed because the window manager just creates an aditional workspace when
   // the previous one has some window on it.
   savedWindowList = savedWindowList.concat().sort((a, b) => {
     return a.wmCurrentDesktopNr - b.wmCurrentDesktopNr;
@@ -567,10 +567,13 @@ async function _restoreWindowPositions(
     promises.push(restoreWindowPosition(win));
     promises.push(moveToWorkspace(win.windowId, win.wmCurrentDesktopNr));
 
-    // The promises are not executed until the last item is reached or 
+    // The promises are not executed until the last item is reached or
     // the desktop_nr is different from the previous entry and which case
     // the app waits for those to finish before continuing the process
-    if ( (win.wmCurrentDesktopNr !== last_desktop_nr) || (win === savedWindowList.slice(-1)[0])) {
+    if (
+      win.wmCurrentDesktopNr !== last_desktop_nr ||
+      win === savedWindowList.slice(-1)[0]
+    ) {
       for (const promise of promises) {
         try {
           await promise;
@@ -579,7 +582,7 @@ async function _restoreWindowPositions(
         }
       }
       last_desktop_nr = win.wmCurrentDesktopNr;
-      promises.length = 0
+      promises.length = 0;
     }
   }
 }
