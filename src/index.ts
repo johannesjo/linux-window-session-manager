@@ -219,6 +219,14 @@ function restoreSession(
           // gets current window list by itself and returns the updated variant
           return _waitForAllAppsToStart(savedWindowList);
         })
+        .then(
+          (updatedCurrentWindowList: WinObj[]) =>
+            new Promise(resolve =>
+              setTimeout(() => {
+                resolve(updatedCurrentWindowList);
+              }, 500)
+            )
+        )
         .then((updatedCurrentWindowList: WinObj[]) => {
           _updateWindowIds(savedWindowList, updatedCurrentWindowList);
           return _restoreWindowPositions(savedWindowList);
