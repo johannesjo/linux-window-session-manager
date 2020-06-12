@@ -224,7 +224,7 @@ function restoreSession(
             new Promise(resolve =>
               setTimeout(() => {
                 resolve(updatedCurrentWindowList);
-              }, 500)
+              }, 250)
             )
         )
         .then((updatedCurrentWindowList: WinObj[]) => {
@@ -565,10 +565,12 @@ async function _restoreWindowPositions(
 
   // Sort the window objects based on which workspace they are locate,
   // so the windows can be moved workspace by workspace
-  // This is needed because the window manager just creates an aditional workspace when
+  // This is needed because the window manager just creates an additional workspace when
   // the previous one has some window on it.
   savedWindowList = savedWindowList.concat().sort((a, b) => {
-    return a.wmCurrentDesktopNr - b.wmCurrentDesktopNr;
+    // NOTE: we need to fallback to zero because otherwise we get NAN for undefined and this
+    // messes up everything
+    return (a.wmCurrentDesktopNr || 0) - (b.wmCurrentDesktopNr || 0);
   });
 
   for (const win of savedWindowList) {
