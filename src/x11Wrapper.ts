@@ -401,7 +401,8 @@ function quotize(i) {
 
 function _parseWindowIds(strIn): string[] {
   const str = strIn.replace("window id# ", "");
-  return str.split(", ");
+  const split = str.split(", ");
+  return split[0] === "" ? [] : split;
 }
 
 //const testFn = wrapX11(closeWindow);
