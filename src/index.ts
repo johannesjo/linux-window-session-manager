@@ -432,6 +432,7 @@ function _guessFilePath(win: WinObj, inputHandler): Promise<string | unknown> {
               `\n Alternative guessing approach for "${win.simpleName}" SUCCESS -> ${ent[0]}`
             );
             win.executableFile = ent[0];
+            win.executableArgs = "";
             fulfill(win.executableFile);
           }
         });
@@ -440,9 +441,11 @@ function _guessFilePath(win: WinObj, inputHandler): Promise<string | unknown> {
           .then(input => {
             if (_isDesktopFile(win.executableFile)) {
               win.desktopFilePath = input;
+              win.executableArgs = "";
               fulfill(win.desktopFilePath);
             } else {
               win.executableFile = input;
+              win.executableArgs = "";
               fulfill(win.executableFile);
             }
           })
