@@ -471,11 +471,7 @@ async function _startSessionPrograms(
     })
     .map(win => {
       win.instancesStarted += 1;
-      return startProgram(
-        win.executableFile,
-        win.desktopFilePath,
-        win.executableArgs
-      );
+      return startProgram(win.executableFile, win.desktopFilePath, "");
     });
 
   await Promise.all(promises);
@@ -493,16 +489,16 @@ async function _startAndWaitPrograms(windowList: WinObj[]) {
   // Get the windowIds of all Ids that were previously opened in order to
   // avoid these windows from being used isntead of the newly created windows
   // (necessary for windows with custom input arguments)
-  var activeWindows = await getActiveWindowListFlow();
-  var blackWinIdList = activeWindows.map(win => win.windowId);
+  let activeWindows = await getActiveWindowListFlow();
+  let blackWinIdList = activeWindows.map(win => win.windowId);
 
   // Match all the previously opened windows with the windows that do not have
   // custom arguments (in this case, no blacklist needed)
   await _matchWindows(windowList, false, []);
 
-  var windowsNotStarted = windowList.filter(win => win.windowId === null);
-  var windowStarted = windowList.filter(win => win.windowId !== null);
-  var windowsToStart = _getWindowsToStart(windowsNotStarted, windowStarted);
+  let windowsNotStarted = windowList.filter(win => win.windowId === null);
+  let windowStarted = windowList.filter(win => win.windowId !== null);
+  let windowsToStart = _getWindowsToStart(windowsNotStarted, windowStarted);
 
   let totalTimeWaited = 0;
   // Runs the loop until all windows have been opened or time limit is over
@@ -545,8 +541,8 @@ async function _startAndWaitPrograms(windowList: WinObj[]) {
 // mixing same application windows with different arguments. The others will have to wait for the
 // previous windows to start, before the command can be issued
 function _getWindowsToStart(windowList: WinObj[], windowsStarted: WinObj[]) {
-  var windowsToStart = [];
-  for (var win of windowList) {
+  let windowsToStart = [];
+  for (let win of windowList) {
     let shouldAdd = true;
     // If another instance of the same application with different input arguments
     // is in the list of windows to start, then the current one should not be added
@@ -582,7 +578,7 @@ async function _matchWindows(
   includeExecsWithArgs: boolean,
   blackWinIdList: String[]
 ) {
-  var activeWindows = await getActiveWindowListFlow();
+  let activeWindows = await getActiveWindowListFlow();
   // Remove the active windows that already have a window assigned on windowList
   // and the ones that are on the black list
   activeWindows = activeWindows.filter(
@@ -592,7 +588,7 @@ async function _matchWindows(
     actWin => !blackWinIdList.find(windowId => windowId === actWin.windowId)
   );
 
-  for (var win of windowList.filter(win => win.windowId === null)) {
+  for (let win of windowList.filter(win => win.windowId === null)) {
     let activeWindowMatch = activeWindows.find(
       actWin => actWin.wmClassName == win.wmClassName
     );
@@ -705,7 +701,7 @@ async function _restoreWindowPositions(
   for (const win of savedWindowList) {
     promises.push(restoreWindowPosition(win));
     promises.push(moveToWorkspace(win.windowId, win.wmCurrentDesktopNr));
-    // The promises are not executed until the last item is reached or 
+    // The promises are not executed until the last item is reached or
     // the desktop_nr is different from the previous entry and which case
     // the app waits for those to finish before continuing the process
     if (
