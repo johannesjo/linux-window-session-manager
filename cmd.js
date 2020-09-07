@@ -79,6 +79,16 @@ function killX11() {
   }
 }
 
+let version = '';
+try {
+  const p = require('./package.json');
+  version = p.version;
+} catch (e) {
+  console.error(e);
+}
+
+console.log(`lwsm ${version} --> ${action} ${new Date()}`);
+
 if (action === 'save') {
   base.saveSession(sessionName, savePrompts).then(killX11);
 } else if (action === 'restore') {
@@ -92,18 +102,13 @@ if (action === 'save') {
 } else if (action === 'rename' && sessionName && (process.argv[4] && !process.argv[4].match(/^--/))) {
   base.renameSession(sessionName, process.argv[4]);
 } else {
-  let version = '';
-  try {
-    const p = require('./package.json');
-    version = p.version;
-  } catch (e) {
-  }
+
   console.log(`
   Linux Window Session Manager ${version}
 
   Saving your current windows:
   lwsm save [OPTIONAL_SESSION_ID]
-  
+
   Restoring a session:
   lwsm restore [OPTIONAL_SESSION_ID] [--closeAllOpenWindows]
 
