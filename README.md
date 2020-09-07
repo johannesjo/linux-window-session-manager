@@ -51,6 +51,7 @@ lwsm restore my-session
 lwsm restore --closeAllOpenWindows
 ```
 
+
 ### List saved sessions:
 ```
 lwsm list
@@ -63,6 +64,60 @@ lwsm rename oldName newName
 
 ### Adjusting the configuration:
 You can manually edit the config file present at `~/.config/lwsm/config.json` and the session files in `~/.config/lwsm/sessionData/[sessionName].json`.
+
+### Adding input arguments to programs when restoring a session:
+Making use of the "--allowInputArgs" flag, it is possible to restore sessions passing input parameters to the programs.
+The parameters have to be added manually to the saved .json files.
+
+For google chrome you can add:
+```
+"executableArgs": "--new-window gmail.com google.com"
+```
+
+For firefox:
+```
+"executableArgs": "--new-window gmail.com"
+```
+or (if you want to open more than one tab):
+```
+"executableArgs": " gmail.com google.com"
+```
+
+For nautilus:
+```
+"executableArgs": "/home/user/Desktop"
+```
+
+For Vscode:
+```
+"executableArgs": "/home/user/Desktop"
+```
+
+The json would have a format similar to this:
+```
+        {
+          "windowId": "0x2c0000b",
+          ...
+          "simpleName": "Google-chrome",
+          "executableFile": "google-chrome.desktop",
+          "desktopFilePath": "/usr/share/applications/google-chrome.desktop",
+          "executableArgs": "--new-window gmail.com"
+        },
+        {
+          "windowId": "0x2e00001",
+          ...
+          "simpleName": "Code",
+          "executableFile": "code.desktop",
+          "desktopFilePath": "/usr/share/applications/code.desktop",
+          "executableArgs": "/path/to/you/code"
+        },
+```
+
+After edditing the json, you can call lwsm with the following command:
+```
+# restore the session from ~/.config/lwsm/sessionData/my-session.json
+lwsm restore my-session --allowInputArgs
+```
 
 ### Command-line completion:
 ```
