@@ -370,7 +370,12 @@ function _isAllAppsStarted(
   currentWindowList: WinObj[]
 ): boolean {
   let isAllStarted = true;
-  const currentWindowListCopy = currentWindowList.slice(0);
+  const currentWindowListCopy = currentWindowList.slice(0).filter(
+    // some apps have a splash screen (intellij idea), we want to wait for those
+    winFromCurrent =>
+      !winFromCurrent.states?.includes("_NET_WM_STATE_SKIP_TASKBAR")
+  );
+
   savedWindowList.forEach(win => {
     if (!_getMatchingWindowId(win, currentWindowListCopy)) {
       isAllStarted = false;
