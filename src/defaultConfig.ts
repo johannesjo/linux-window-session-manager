@@ -56,6 +56,7 @@ export const DEFAULT_CFG = {
     "/var/lib/snapd/desktop/applications",
     "/var/lib/flatpak/app",
     "/var/lib/flatpak/exports/share/applications",
+    "{home}/.local/share/flatpak/exports/share/applications",
     "/snap/bin"
   ]
 };
