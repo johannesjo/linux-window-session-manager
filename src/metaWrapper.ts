@@ -159,7 +159,9 @@ function _isChromeApp(fileName) {
 function _parseChromeAppDesktopFileName(fileName) {
   return new Promise((resolve, reject) => {
     // we wan't to search from desktop files only
-    const locateStr = fileName.replace("crx_", "*") + "*.desktop";
+    // chrome wm class uses prefix crx_ (one underscore)
+    // edge wm class uses prefix crx__ (two underscores)
+    const locateStr = fileName.replace(/crx__?/, "*") + "*.desktop";
     findDesktopFile(locateStr)
       .then(resolve)
       .catch(reject);
