@@ -106,6 +106,7 @@ function saveSession(sessionName: string, inputHandlers): Promise<any> {
     })
     .then(windowList => {
       const connectedDisplaysId = getConnectedDisplaysId();
+      console.log("DisplayID: " + connectedDisplaysId);
       return saveSessionForDisplayToDb(
         sessionToHandle,
         connectedDisplaysId,
@@ -193,6 +194,7 @@ function restoreSession(
         .then(goToFirstWorkspace)
         .then(getConnectedDisplaysId)
         .then(connectedDisplaysId => {
+          console.log("DisplayID: " + connectedDisplaysId);
           if (!sessionData.displaysCombinations) {
             console.error(`no display combinations saved yet`);
             return;
