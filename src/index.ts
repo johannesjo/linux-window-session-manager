@@ -60,7 +60,7 @@ export default {
 // --------
 function _catchGenericErr(err) {
   console.error("Generic Error in Main Handler", err, err.stack);
-  throw err;
+  // throw err;
 }
 
 function getSessions() {

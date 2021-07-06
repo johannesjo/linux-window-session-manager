@@ -5,3 +5,4 @@ snap/.snapcraft
 parts
 prime
 stage
+node_modules
