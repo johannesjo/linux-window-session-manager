@@ -79,7 +79,8 @@ export async function getAdditionalMetaDataForWin(
 // TODO prettify args structure
 export function startProgram(
   executableFile: string,
-  desktopFilePath: string
+  desktopFilePath: string,
+  executableArgs: string
 ): Promise<void> {
   IS_DEBUG &&
     console.log("DEBUG: startProgram():", executableFile, desktopFilePath);
@@ -88,14 +89,26 @@ export function startProgram(
   let args = [];
   if (desktopFilePath) {
     cmd = `awk`;
-    args.push(
-      '/^Exec=/ {sub("^Exec=", ""); gsub(" ?%[cDdFfikmNnUuv]", ""); exit system($0)}'
-    );
+
+    if (executableArgs) {
+      args.push(
+        `/^Exec=/ {sub("^Exec=", ""); gsub(" ?%[cDdFfikmNnUuv]", " ${executableArgs}"); exit system($0)}`
+      );
+    } else {
+      args.push(
+        '/^Exec=/ {sub("^Exec=", ""); gsub(" ?%[cDdFfikmNnUuv]", ""); exit system($0)}'
+      );
+    }
+
     args.push(desktopFilePath);
   } else {
     const parsedCmd = parseCmdArgs(executableFile);
     cmd = parsedCmd[0];
     args = parsedCmd[1];
+    if (executableArgs) {
+      var executableArgsArray = executableArgs.split(" ");
+      args = args.concat(executableArgsArray);
+    }
   }
 
   return new Promise(fulfill => {
