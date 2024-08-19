@@ -13,7 +13,7 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js",
+    "start": "node cmd.js",
     "buildBin": "find ./node_modules/x11 -type f -exec sed -i 's/req_proxy\\.arguments/arguments/g' {} + && nexe",
     "build": "rollup --config",
     "watch": "rollup --config --watch",

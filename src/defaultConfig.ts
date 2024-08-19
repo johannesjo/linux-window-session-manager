@@ -20,7 +20,8 @@ export const DEFAULT_CFG = {
     "keepassxc.keepassxc": "keepassxc_keepassxc.desktop",
     "slack.Slack": "com.slack.Slack.desktop",
     "signal.Signal": "signal-desktop.desktop",
-    "microsoft teams - preview.Microsoft Teams - Preview": "teams.desktop"
+    "microsoft teams - preview.Microsoft Teams - Preview": "teams.desktop",
+    "obsidian.obsidian": "md.obsidian.Obsidian.desktop"
   },
   WM_CLASS_EXCLUSIONS: [
     "N/A",
